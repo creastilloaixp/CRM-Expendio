@@ -1,0 +1,5 @@
+{
+  "name": "Expendio - Table Management & CRM",
+  "description": "A comprehensive table management and CRM system for 'Expendio Cervecería Popular'. This app allows customers to check in via QR codes and provides staff with a real-time dashboard to manage table statuses and view customer visit reports.",
+  "requestFramePermissions": []
+}

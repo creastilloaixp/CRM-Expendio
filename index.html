@@ -1,0 +1,49 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Expendio - Cervecería Popular</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Roboto:wght@400;500;700&family=Damion&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'expendio-red': '#D13336',
+              'expendio-teal': '#2A9D8F',
+              'expendio-maroon': '#6A2E35',
+              'expendio-bg': '#F4F1DE',
+              'expendio-dark': '#3D405B',
+            },
+            fontFamily: {
+              'display': ['"Alfa Slab One"', 'cursive'],
+              'script': ['"Damion"', 'cursive'],
+              'sans': ['"Roboto"', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "@google/genai": "https://aistudiocdn.com/google-genai-v0.0.1/index.js",
+    "marked": "https://aistudiocdn.com/marked@^13.0.2/lib/marked.esm.js"
+  }
+}
+</script>
+</head>
+  <body class="bg-expendio-bg">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
