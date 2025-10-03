@@ -5,9 +5,10 @@ import Dashboard from './components/Dashboard';
 import Reports from './components/Reports';
 import CheckIn from './components/CheckIn';
 import Reservations from './components/Reservations';
+import Menu from './components/Menu';
 import { supabaseMock } from './services/supabaseMock';
 
-type View = 'login' | 'dashboard' | 'reports' | 'checkin' | 'reservations';
+type View = 'login' | 'dashboard' | 'reports' | 'checkin' | 'reservations' | 'menu';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -16,14 +17,24 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const parseHash = useCallback(() => {
+    // Recommended: Read from search params (e.g., /?mesa=F1#/checkin)
+    const mainSearchParams = new URLSearchParams(window.location.search);
+    let mesa = mainSearchParams.get('mesa');
+
     const hash = window.location.hash.substring(1);
     const [path, queryString] = hash.split('?');
     
+    // Backwards compatibility: Read from hash if not in search (e.g., /#/checkin?mesa=F1)
+    if (!mesa && queryString) {
+        const hashParams = new URLSearchParams(queryString);
+        mesa = hashParams.get('mesa');
+    }
+    
     if (path.startsWith('/checkin')) {
-      const params = new URLSearchParams(queryString);
-      const mesa = params.get('mesa');
       setCheckInMesa(mesa);
       setCurrentView('checkin');
+    } else if (path.startsWith('/menu')) {
+        setCurrentView('menu');
     } else if (isAuthenticated) {
       switch (path) {
         case '/dashboard':
@@ -78,6 +89,12 @@ const App: React.FC = () => {
 
     if (currentView === 'checkin') {
       return <CheckIn mesaName={checkInMesa} />;
+    }
+    
+    if (currentView === 'menu') {
+        const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+        const mesa = params.get('mesa');
+        return <Menu mesaName={mesa} />;
     }
 
     if (!isAuthenticated) {

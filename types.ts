@@ -22,8 +22,10 @@ export interface Cliente {
   id: string;
   nombre: string;
   email: string;
-  telefono?: string;
+  telefono: string;
+  fecha_nacimiento?: string;
   fecha_creacion: string;
+  marketing_opt_in?: boolean;
 }
 
 export interface Visita {
@@ -36,13 +38,6 @@ export interface Visita {
   consumo_total?: number | null;
   mesa?: { nombre: string };
   cliente?: { nombre: string; email: string };
-}
-
-export type NewVisita = {
-  mesaNombre: string;
-  clienteNombre: string;
-  clienteEmail: string;
-  numeroPersonas: number;
 }
 
 export interface Reserva {

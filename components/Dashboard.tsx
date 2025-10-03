@@ -4,6 +4,8 @@ import type { Mesa, Visita, Reserva, NewReserva } from '../types';
 import { TableStatus } from '../types';
 import TableCard from './TableCard';
 import TableModal from './TableModal';
+import QRCodeModal from './QRCodeModal';
+import { Button } from './common/Button';
 
 const Dashboard: React.FC = () => {
   const [mesas, setMesas] = useState<Mesa[]>([]);
@@ -12,6 +14,7 @@ const Dashboard: React.FC = () => {
   const [currentVisita, setCurrentVisita] = useState<Visita | null>(null);
   const [currentReserva, setCurrentReserva] = useState<Reserva | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isQRModalOpen, setIsQRModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const unsubscribe = supabaseMock.subscribeToTableChanges((updatedMesas) => {
@@ -71,6 +74,10 @@ const Dashboard: React.FC = () => {
 
   return (
     <>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-expendio-dark">Vista de Mesas</h2>
+        <Button onClick={() => setIsQRModalOpen(true)} variant="secondary">Generar Códigos QR</Button>
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {mesas.map((mesa) => (
           <TableCard 
@@ -90,6 +97,7 @@ const Dashboard: React.FC = () => {
           onCreateReservation={handleCreateReservation}
         />
       )}
+      {isQRModalOpen && <QRCodeModal onClose={() => setIsQRModalOpen(false)} />}
     </>
   );
 };
