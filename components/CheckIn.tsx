@@ -92,51 +92,71 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
       return;
     }
 
-    // 3. Verificar si es usuario recurrente por teléfono (método principal)
+    // 3. Verificar si es usuario recurrente por localStorage
     const savedPhone = localStorage.getItem('expendio_user_phone');
     const savedEmail = localStorage.getItem('expendio_user_email');
+    const savedNombre = localStorage.getItem('expendio_user_nombre');
+    const savedClienteId = localStorage.getItem('expendio_cliente_id');
 
+    console.log('🔍 Datos guardados:', { savedPhone, savedEmail, savedNombre, savedClienteId });
+
+    // Si tenemos cliente_id guardado, usarlo directamente (más confiable)
+    if (savedClienteId && savedNombre) {
+      console.log('✅ Usuario recurrente detectado por localStorage');
+      setReturningUser({
+        nombre: savedNombre,
+        email: savedEmail || '',
+        telefono: savedPhone || '',
+        id: savedClienteId
+      });
+      loadClientePuntos(savedClienteId);
+      setStatus('welcome_back');
+      return;
+    }
+
+    // Fallback: buscar por teléfono en la DB
     if (savedPhone) {
       try {
-        // Primero intentar por teléfono (más confiable)
-        const { data: clienteByPhone } = await getClienteByTelefono(savedPhone);
-        if (clienteByPhone) {
+        const { data: clienteByPhone, error } = await getClienteByTelefono(savedPhone);
+        console.log('🔍 Búsqueda por teléfono:', { clienteByPhone, error });
+        if (clienteByPhone && !error) {
+          localStorage.setItem('expendio_cliente_id', clienteByPhone.id);
+          localStorage.setItem('expendio_user_nombre', clienteByPhone.nombre || 'Usuario');
           setReturningUser({
             nombre: clienteByPhone.nombre || 'Usuario',
             email: clienteByPhone.email,
             telefono: clienteByPhone.telefono,
             id: clienteByPhone.id
           });
-          // Cargar puntos del cliente
           loadClientePuntos(clienteByPhone.id);
-          // Mostrar pantalla de bienvenida con selector de personas
           setStatus('welcome_back');
           return;
         }
       } catch (error) {
-        console.log('Cliente no encontrado por teléfono, intentando por email...');
+        console.log('❌ Error buscando por teléfono:', error);
       }
     }
 
-    // 4. Si no se encontró por teléfono, intentar por email
+    // Fallback: buscar por email en la DB
     if (savedEmail) {
       try {
-        const { data: clienteData } = await getClienteByEmail(savedEmail);
-        if (clienteData) {
+        const { data: clienteData, error } = await getClienteByEmail(savedEmail);
+        console.log('🔍 Búsqueda por email:', { clienteData, error });
+        if (clienteData && !error) {
+          localStorage.setItem('expendio_cliente_id', clienteData.id);
+          localStorage.setItem('expendio_user_nombre', clienteData.nombre || 'Usuario');
           setReturningUser({
             nombre: clienteData.nombre || 'Usuario',
             email: clienteData.email,
             telefono: clienteData.telefono,
             id: clienteData.id
           });
-          // Cargar puntos del cliente
           loadClientePuntos(clienteData.id);
-          // Mostrar pantalla de bienvenida con selector de personas
           setStatus('welcome_back');
           return;
         }
       } catch (error) {
-        console.log('Usuario no encontrado por email');
+        console.log('❌ Error buscando por email:', error);
       }
     }
 
