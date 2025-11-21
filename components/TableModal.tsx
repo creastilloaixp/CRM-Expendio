@@ -4,6 +4,8 @@ import { TableStatus } from '../types';
 import { Button } from './common/Button';
 import { Input } from './common/Input';
 import { obtenerPedidosVisita, calcularTotalPedidos } from '../services/api';
+import PaymentModal from './PaymentModal';
+import type { PaymentMethod } from '../services/paymentService';
 
 interface ReservationFormProps {
     mesaId: string;
@@ -77,6 +79,7 @@ const TableModal: React.FC<TableModalProps> = ({ mesa, visita, reserva, onClose,
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [totalPedidos, setTotalPedidos] = useState<number>(0);
   const [loadingPedidos, setLoadingPedidos] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Cargar pedidos cuando hay una visita activa
   useEffect(() => {
@@ -97,6 +100,22 @@ const TableModal: React.FC<TableModalProps> = ({ mesa, visita, reserva, onClose,
     };
     fetchPedidos();
   }, [visita?.id]);
+
+  const handleOpenPayment = () => {
+    if (visita && (totalPedidos > 0 || parseFloat(consumo) > 0)) {
+      setShowPaymentModal(true);
+    }
+  };
+
+  const handlePaymentComplete = async (method: PaymentMethod, paymentId: string) => {
+    console.log('💰 Pago completado:', { method, paymentId });
+    setShowPaymentModal(false);
+    if (visita) {
+      setIsSubmitting(true);
+      await onRelease(visita.id, totalPedidos || parseFloat(consumo));
+      setIsSubmitting(false);
+    }
+  };
 
   const handleRelease = async () => {
       if(visita && consumo) {
@@ -200,9 +219,14 @@ const TableModal: React.FC<TableModalProps> = ({ mesa, visita, reserva, onClose,
                         value={consumo}
                         onChange={(e) => setConsumo(e.target.value)}
                      />
-                     <Button onClick={handleRelease} fullWidth className="mt-4" disabled={!consumo || isSubmitting}>
-                        {isSubmitting ? 'Liberando...' : 'Liberar Mesa y Cobrar'}
-                     </Button>
+                     <div className="flex gap-2">
+                       <Button onClick={handleOpenPayment} fullWidth disabled={(!consumo && totalPedidos === 0) || isSubmitting}>
+                         {isSubmitting ? 'Procesando...' : '💰 Cobrar'}
+                       </Button>
+                       <Button onClick={handleRelease} variant="outline" disabled={!consumo || isSubmitting}>
+                         Liberar
+                       </Button>
+                     </div>
                   </div>
                 </div>
             );
@@ -265,27 +289,40 @@ const TableModal: React.FC<TableModalProps> = ({ mesa, visita, reserva, onClose,
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex justify-between items-start">
-            <div>
-              <h2 className="text-3xl font-display text-expendio-dark">Mesa {mesa.nombre}</h2>
-              <p className={`font-semibold text-lg ${
-                mesa.estado === TableStatus.Ocupada ? 'text-expendio-red' : 
-                mesa.estado === TableStatus.Reservada ? 'text-blue-600' : 'text-gray-600'
-              }`}>
-                {mesa.estado}
-              </p>
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4" onClick={onClose}>
+        <div className="bg-white rounded-lg shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-3xl font-display text-expendio-dark">Mesa {mesa.nombre}</h2>
+                <p className={`font-semibold text-lg ${
+                  mesa.estado === TableStatus.Ocupada ? 'text-expendio-red' :
+                  mesa.estado === TableStatus.Reservada ? 'text-blue-600' : 'text-gray-600'
+                }`}>
+                  {mesa.estado}
+                </p>
+              </div>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
+          </div>
+          <div className="p-6">
+            {renderContent()}
           </div>
         </div>
-        <div className="p-6">
-          {renderContent()}
-        </div>
       </div>
-    </div>
+
+      {visita && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          total={totalPedidos || parseFloat(consumo) || 0}
+          mesaNombre={mesa.nombre}
+          visitaId={visita.id}
+          onPaymentComplete={handlePaymentComplete}
+        />
+      )}
+    </>
   );
 };
 
