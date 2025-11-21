@@ -5,6 +5,7 @@ import { Card } from './common/Card';
 import { Button } from './common/Button';
 import { Input } from './common/Input';
 import AIAssistant from './AIAssistant';
+import { exportToPDF, exportToExcel } from '../services/exportService';
 
 const Reports: React.FC = () => {
   const today = new Date().toISOString().split('T')[0];
@@ -62,6 +63,60 @@ const Reports: React.FC = () => {
   const formatCurrency = (value?: number | null) => {
     return (value ?? 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
   };
+
+  const handleExportPDF = () => {
+    const data = visits.map(v => ({
+      mesa: v.mesa?.nombre || 'N/A',
+      cliente: v.cliente?.nombre || 'Sin nombre',
+      personas: v.numero_personas,
+      consumo: formatCurrency(v.consumo_total),
+      llegada: new Date(v.hora_llegada).toLocaleString('es-MX'),
+      salida: v.hora_salida ? new Date(v.hora_salida).toLocaleString('es-MX') : '-'
+    }));
+
+    exportToPDF({
+      title: 'Reporte de Visitas',
+      subtitle: `Del ${startDate} al ${endDate}`,
+      filename: `reporte_visitas_${startDate}_${endDate}`,
+      columns: [
+        { header: 'Mesa', key: 'mesa', width: 10 },
+        { header: 'Cliente', key: 'cliente', width: 20 },
+        { header: 'Personas', key: 'personas', width: 10 },
+        { header: 'Consumo', key: 'consumo', width: 15 },
+        { header: 'Llegada', key: 'llegada', width: 18 },
+        { header: 'Salida', key: 'salida', width: 18 },
+      ],
+      data
+    });
+  };
+
+  const handleExportExcel = () => {
+    const data = visits.map(v => ({
+      mesa: v.mesa?.nombre || 'N/A',
+      cliente: v.cliente?.nombre || 'Sin nombre',
+      email: v.cliente?.email || '',
+      personas: v.numero_personas,
+      consumo: v.consumo_total || 0,
+      llegada: new Date(v.hora_llegada).toLocaleString('es-MX'),
+      salida: v.hora_salida ? new Date(v.hora_salida).toLocaleString('es-MX') : ''
+    }));
+
+    exportToExcel({
+      title: 'Reporte de Visitas',
+      subtitle: `Del ${startDate} al ${endDate}`,
+      filename: `reporte_visitas_${startDate}_${endDate}`,
+      columns: [
+        { header: 'Mesa', key: 'mesa', width: 10 },
+        { header: 'Cliente', key: 'cliente', width: 20 },
+        { header: 'Email', key: 'email', width: 25 },
+        { header: 'Personas', key: 'personas', width: 10 },
+        { header: 'Consumo', key: 'consumo', width: 12 },
+        { header: 'Llegada', key: 'llegada', width: 18 },
+        { header: 'Salida', key: 'salida', width: 18 },
+      ],
+      data
+    });
+  };
   
   return (
     <Card>
@@ -80,9 +135,15 @@ const Reports: React.FC = () => {
           reportGenerated && (
             <>
               {visits.length > 0 && (
-                <div className="mb-4">
-                  <Button onClick={downloadCSV} variant="secondary">
-                    Exportar a CSV
+                <div className="mb-4 flex gap-2 flex-wrap">
+                  <Button onClick={handleExportPDF} variant="primary">
+                    📄 Exportar PDF
+                  </Button>
+                  <Button onClick={handleExportExcel} variant="secondary">
+                    📊 Exportar Excel
+                  </Button>
+                  <Button onClick={downloadCSV} variant="outline">
+                    📋 Exportar CSV
                   </Button>
                 </div>
               )}
