@@ -306,13 +306,13 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
       const puntosMesa = numeroPersonas;
       const nuevoTotal = puntosActuales + puntosMesa;
 
-      setMessage(`¡Bienvenido de nuevo, ${returningUser.nombre}! 🎊\n\n⭐ +${puntosMesa} punto${puntosMesa > 1 ? 's' : ''}\n💰 Total: ${nuevoTotal} puntos`);
+      setMessage(`¡Bienvenido de nuevo, ${returningUser.nombre}! 🎊\n\n⭐ +${puntosMesa} punto${puntosMesa > 1 ? 's' : ''}\n💰 Total: ${nuevoTotal} puntos\n\nRedirigiendo al menú...`);
       setStatus('success');
 
-      // Mostrar ruleta de premios
+      // Redirigir al menú después de mostrar puntos (sin ruleta para usuarios recurrentes)
       setTimeout(() => {
-        setShowPrizeModal(true);
-      }, 1500);
+        window.location.hash = `/menu?mesa=${mesaName}`;
+      }, 3000);
     } catch (error) {
       setMessage('Error en el check-in');
       setStatus('error');

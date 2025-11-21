@@ -186,8 +186,33 @@ const MenuWithCart: React.FC<MenuProps> = ({ mesaName }) => {
 
     // 🛒 NUEVO: Confirmar y enviar pedido
     const handleConfirmOrder = async () => {
-        if (!visitaId) {
-            alert('No se pudo encontrar tu visita activa.');
+        let currentVisitaId = visitaId;
+
+        // Si no hay visita, intentar crearla automáticamente
+        if (!currentVisitaId) {
+            const clienteId = localStorage.getItem('expendio_cliente_id');
+            const mesaFromUrl = new URLSearchParams(window.location.hash.split('?')[1] || '').get('mesa');
+
+            if (clienteId && mesaFromUrl) {
+                try {
+                    const { startVisit } = await import('../services/api');
+                    const { data } = await startVisit(mesaFromUrl, 1, clienteId);
+                    if (data) {
+                        const newVisitaId = typeof data === 'object' ? (data.visita_id || data.id) : data;
+                        if (newVisitaId) {
+                            currentVisitaId = newVisitaId;
+                            setVisitaId(newVisitaId);
+                            localStorage.setItem('expendio_visita_id', newVisitaId);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error creando visita automática:', e);
+                }
+            }
+        }
+
+        if (!currentVisitaId) {
+            alert('No se pudo encontrar tu visita activa. Por favor escanea el QR de tu mesa nuevamente.');
             return;
         }
 
@@ -202,7 +227,7 @@ const MenuWithCart: React.FC<MenuProps> = ({ mesaName }) => {
             // Crear pedidos para cada producto en el carrito
             const pedidosPromises = cart.map(item =>
                 crearPedido({
-                    visitaId,
+                    visitaId: currentVisitaId,
                     productoId: item.producto.id,
                     cantidad: item.cantidad,
                     notas: item.notas
@@ -233,15 +258,16 @@ const MenuWithCart: React.FC<MenuProps> = ({ mesaName }) => {
     };
 
     const handleLlamarMesero = async () => {
-        if (!visitaId) {
-            alert('No se pudo encontrar tu visita activa.');
+        const currentVisitaId = visitaId || localStorage.getItem('expendio_visita_id');
+        if (!currentVisitaId) {
+            alert('No se pudo encontrar tu visita activa. Escanea el QR de tu mesa.');
             return;
         }
 
         setProcessingNotification(true);
         try {
             const { data, error } = await crearNotificacion({
-                visitaId,
+                visitaId: currentVisitaId,
                 tipo: 'Llamar Mesero' as NotificacionTipo
             });
 
@@ -259,8 +285,9 @@ const MenuWithCart: React.FC<MenuProps> = ({ mesaName }) => {
     };
 
     const handlePedirCuenta = async () => {
-        if (!visitaId) {
-            alert('No se pudo encontrar tu visita activa.');
+        const currentVisitaId = visitaId || localStorage.getItem('expendio_visita_id');
+        if (!currentVisitaId) {
+            alert('No se pudo encontrar tu visita activa. Escanea el QR de tu mesa.');
             return;
         }
 
@@ -268,14 +295,14 @@ const MenuWithCart: React.FC<MenuProps> = ({ mesaName }) => {
         setShowCuentaModal(true);
 
         try {
-            const { data, error } = await calcularTotalPedidos(visitaId);
+            const { data, error } = await calcularTotalPedidos(currentVisitaId);
             if (!error && typeof data === 'number') {
                 setTotalCuenta(data);
             }
 
             // También crear notificación
             await crearNotificacion({
-                visitaId,
+                visitaId: currentVisitaId,
                 tipo: 'Pedir Cuenta' as NotificacionTipo
             });
         } catch (error) {
