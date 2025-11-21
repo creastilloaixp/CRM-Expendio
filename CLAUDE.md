@@ -37,6 +37,13 @@
 - [x] Recomendaciones de productos personalizadas
 - [x] Dashboard unificado de IA (`/ai-dashboard`)
 
+### Flujo de Mesas y Reservas (Completado - commit: dadf79a)
+- [x] Modal de mesa reservada con botones de acción
+- [x] Confirmar llegada del cliente (convierte reserva en visita)
+- [x] Cancelar reserva desde Dashboard
+- [x] Mostrar pedidos activos en mesa ocupada
+- [x] Total calculado automáticamente para liberar mesa
+
 ### Funcionalidades Pendientes
 - [ ] Notificaciones push (PWA)
 - [ ] Integración de pagos (Stripe/MercadoPago)

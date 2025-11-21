@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getCurrentUser, getClienteByEmail, getClienteByTelefono, registerClienteDirect, startVisit, getMesaByNombre, getMesas, createClientSession } from '../services/api';
+import { getCurrentUser, getClienteByEmail, getClienteByTelefono, registerClienteDirect, startVisit, getMesaByNombre, getMesas, createClientSession, getClientePuntos } from '../services/api';
 import { Card } from './common/Card';
 import { Input } from './common/Input';
 import { Button } from './common/Button';
@@ -37,6 +37,8 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
   const [availableMesas, setAvailableMesas] = useState<string[]>([]);
   const [numeroPersonas, setNumeroPersonas] = useState(1);
   const [isFirstTime, setIsFirstTime] = useState(false);
+  const [puntosActuales, setPuntosActuales] = useState(0);
+  const [loadingPuntos, setLoadingPuntos] = useState(false);
 
   useEffect(() => {
     initializeCheckIn();
@@ -102,11 +104,10 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
             telefono: clienteByPhone.telefono,
             id: clienteByPhone.id
           });
-          setStatus('auto_checkin');
-          // Auto check-in después de 2 segundos
-          setTimeout(() => {
-            handleAutoCheckIn(clienteByPhone.id, clienteByPhone.nombre);
-          }, 2000);
+          // Cargar puntos del cliente
+          loadClientePuntos(clienteByPhone.id);
+          // Mostrar pantalla de bienvenida con selector de personas
+          setStatus('welcome_back');
           return;
         }
       } catch (error) {
@@ -125,11 +126,10 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
             telefono: clienteData.telefono,
             id: clienteData.id
           });
-          setStatus('auto_checkin');
-          // Auto check-in después de 2 segundos
-          setTimeout(() => {
-            handleAutoCheckIn(clienteData.id, clienteData.nombre);
-          }, 2000);
+          // Cargar puntos del cliente
+          loadClientePuntos(clienteData.id);
+          // Mostrar pantalla de bienvenida con selector de personas
+          setStatus('welcome_back');
           return;
         }
       } catch (error) {
@@ -157,6 +157,23 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
       setAvailableMesas(available);
     }
   };
+
+  const loadClientePuntos = async (clienteId: string) => {
+    setLoadingPuntos(true);
+    try {
+      const { data } = await getClientePuntos(clienteId);
+      if (data?.puntos_actuales) {
+        setPuntosActuales(data.puntos_actuales);
+      }
+    } catch (error) {
+      console.log('No se pudieron cargar los puntos');
+    }
+    setLoadingPuntos(false);
+  };
+
+  // Calcular descuento disponible (10 puntos = $50 de descuento)
+  const descuentoDisponible = Math.floor(puntosActuales / 10) * 50;
+  const puntosParaSiguienteDescuento = 10 - (puntosActuales % 10);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem('expendio_onboarding_seen', 'true');
@@ -433,20 +450,56 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
   }
 
   if (status === 'welcome_back') {
+    const puntosGanar = numeroPersonas * 10;
+    const nuevoTotal = puntosActuales + puntosGanar;
+    const nuevoDescuento = Math.floor(nuevoTotal / 10) * 50;
+
     return (
-      <Card className="max-w-md mx-auto mt-8 p-8">
-        <div className="text-center mb-6">
-          <div className="text-6xl mb-4">👋</div>
-          <h2 className="text-3xl font-bold text-expendio-dark mb-2">
-            ¡Hola de nuevo, {returningUser?.nombre}!
+      <Card className="max-w-md mx-auto mt-8 p-6">
+        <div className="text-center mb-4">
+          <div className="text-5xl mb-3">👋</div>
+          <h2 className="text-2xl font-bold text-expendio-dark mb-1">
+            ¡Hola, {returningUser?.nombre}!
           </h2>
-          <p className="text-gray-600 mb-4">
-            Nos alegra verte de vuelta en <span className="font-bold">Mesa {mesaName}</span>
+          <p className="text-gray-600">
+            Mesa <span className="font-bold text-expendio-primary">{mesaName}</span>
           </p>
         </div>
 
-        <div className="bg-expendio-light rounded-lg p-4 mb-6">
-          <p className="text-sm text-gray-600 mb-2">¿Cuántas personas?</p>
+        {/* Programa de Lealtad */}
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 mb-4 border border-yellow-200">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-gray-700">🏆 Tus Puntos</span>
+            <span className="text-2xl font-bold text-expendio-primary">
+              {loadingPuntos ? '...' : puntosActuales}
+            </span>
+          </div>
+
+          {descuentoDisponible > 0 && (
+            <div className="bg-green-100 rounded-lg p-3 mb-3 border border-green-300">
+              <p className="text-green-800 font-bold text-center">
+                💰 ¡Tienes ${descuentoDisponible} de descuento disponible!
+              </p>
+              <p className="text-xs text-green-600 text-center mt-1">
+                Aplica en tu consumo de hoy
+              </p>
+            </div>
+          )}
+
+          <div className="text-xs text-gray-600 space-y-1">
+            <p>• <strong>10 puntos = $50</strong> de descuento</p>
+            <p>• Ganas <strong>10 puntos</strong> por cada persona en tu mesa</p>
+            {puntosParaSiguienteDescuento < 10 && descuentoDisponible === 0 && (
+              <p className="text-expendio-primary font-medium">
+                ⭐ Te faltan {puntosParaSiguienteDescuento} puntos para tu primer descuento
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Selector de personas */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+          <p className="text-sm text-gray-600 mb-2 text-center">¿Cuántas personas hoy?</p>
           <div className="flex items-center justify-center gap-4">
             <Button
               onClick={() => setNumeroPersonas(Math.max(1, numeroPersonas - 1))}
@@ -466,6 +519,14 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
               +
             </Button>
           </div>
+          <p className="text-center text-sm text-expendio-primary mt-2 font-medium">
+            +{puntosGanar} puntos → Total: {nuevoTotal} puntos
+            {nuevoDescuento > descuentoDisponible && (
+              <span className="block text-green-600">
+                🎉 ¡Desbloqueas ${nuevoDescuento - descuentoDisponible} más de descuento!
+              </span>
+            )}
+          </p>
         </div>
 
         <Button
@@ -473,18 +534,19 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
           variant="primary"
           className="w-full text-lg py-3"
         >
-          Hacer Check-In
+          ¡Comenzar mi visita! 🎉
         </Button>
 
         <button
           onClick={() => {
             localStorage.removeItem('expendio_user_email');
             localStorage.removeItem('expendio_user_phone');
+            localStorage.removeItem('expendio_cliente_id');
             window.location.reload();
           }}
           className="text-sm text-gray-500 hover:text-gray-700 mt-4 w-full"
         >
-          ¿No eres {returningUser?.nombre}? Haz clic aquí
+          ¿No eres {returningUser?.nombre}? Cambiar cuenta
         </button>
       </Card>
     );
