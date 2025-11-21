@@ -4,6 +4,7 @@ import { Card } from './common/Card';
 import { Input } from './common/Input';
 import { Button } from './common/Button';
 import Onboarding from './Onboarding';
+import PrizeModal from './PrizeModal';
 
 interface CheckInProps {
   mesaName: string | null;
@@ -39,6 +40,8 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
   const [isFirstTime, setIsFirstTime] = useState(false);
   const [puntosActuales, setPuntosActuales] = useState(0);
   const [loadingPuntos, setLoadingPuntos] = useState(false);
+  const [showPrizeModal, setShowPrizeModal] = useState(false);
+  const [clienteId, setClienteId] = useState<string>('');
 
   useEffect(() => {
     initializeCheckIn();
@@ -261,12 +264,19 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
         localStorage.setItem('expendio_visita_id', data.visita_id);
       }
 
-      setMessage(`✅ ¡Check-in exitoso! Redirigiendo al menú...`);
+      // Guardar cliente_id para la ruleta
+      setClienteId(returningUser.id);
+
+      const puntosMesa = numeroPersonas;
+      const nuevoTotal = puntosActuales + puntosMesa;
+
+      setMessage(`¡Bienvenido de nuevo, ${returningUser.nombre}! 🎊\n\n⭐ +${puntosMesa} punto${puntosMesa > 1 ? 's' : ''}\n💰 Total: ${nuevoTotal} puntos`);
       setStatus('success');
 
+      // Mostrar ruleta de premios
       setTimeout(() => {
-        window.location.hash = `/menu?mesa=${mesaName}`;
-      }, 2000);
+        setShowPrizeModal(true);
+      }, 1500);
     } catch (error) {
       setMessage('Error en el check-in');
       setStatus('error');
@@ -346,28 +356,23 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
         localStorage.setItem('expendio_visita_id', visitData.visita_id);
       }
 
+      // Guardar cliente_id para la ruleta
+      setClienteId(registerData.cliente_id);
+
       // Mensaje de bienvenida con puntos (1 punto por persona, 10 personas = $50)
-      const puntosIniciales = isFirstTime ? 5 : 0; // 5 puntos de regalo = $25 de valor
-      const puntosMesa = numeroPersonas; // 1 punto por persona
+      const puntosIniciales = isFirstTime ? 5 : 0;
+      const puntosMesa = numeroPersonas;
       const totalPuntos = puntosIniciales + puntosMesa;
 
-      // Mensajes personalizados para primer visita
-      const mensajesPrimerVisita = [
-        `¡Bienvenido a Expendio, ${formData.nombre}! 🎊\n\n${isFirstTime ? `🎁 Regalo de bienvenida: ${puntosIniciales} puntos\n` : ''}⭐ Ganaste ${puntosMesa} punto${puntosMesa > 1 ? 's' : ''} por ${numeroPersonas} persona(s)\n💰 Total: ${totalPuntos} puntos (10 pts = $50 de descuento)\n\n🍽️ Te recomendamos probar nuestros tacos de cochinita.`,
-        `¡Hola ${formData.nombre}! 🌟\n\n${isFirstTime ? `🎁 Por tu primera visita: ${puntosIniciales} puntos\n` : ''}⭐ ${puntosMesa} punto${puntosMesa > 1 ? 's' : ''} ganado${puntosMesa > 1 ? 's' : ''}\n💰 Total: ${totalPuntos} puntos\n\n🍹 No te pierdas nuestro mezcal artesanal de la casa.`,
-        `¡Bienvenido ${formData.nombre}! 🎉\n\n${isFirstTime ? `🎁 ${puntosIniciales} puntos de regalo\n` : ''}⭐ ${puntosMesa} punto${puntosMesa > 1 ? 's' : ''} por tu visita\n💰 ${totalPuntos} puntos totales\n\n🎵 Esta noche tenemos ambiente en vivo, ¡disfruta!`
-      ];
-
-      const mensajeBienvenida = mensajesPrimerVisita[Math.floor(Math.random() * mensajesPrimerVisita.length)];
-
       setMessage(
-        `✅ ${mensajeBienvenida}\n\nRedirigiendo al menú...`
+        `¡Bienvenido a Expendio, ${formData.nombre}! 🎊\n\n${isFirstTime ? `🎁 Regalo: ${puntosIniciales} puntos\n` : ''}⭐ +${puntosMesa} punto${puntosMesa > 1 ? 's' : ''}\n💰 Total: ${totalPuntos} puntos`
       );
       setStatus('success');
 
+      // Mostrar ruleta de premios
       setTimeout(() => {
-        window.location.hash = `/menu?mesa=${mesaName}`;
-      }, 3000);
+        setShowPrizeModal(true);
+      }, 1500);
 
     } catch (error) {
       console.error('Error en registro:', error);
@@ -428,12 +433,33 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
   }
 
   if (status === 'success') {
+    const handlePrizeModalClose = () => {
+      setShowPrizeModal(false);
+      // Redirigir al menú después de cerrar la ruleta
+      setTimeout(() => {
+        window.location.hash = `/menu?mesa=${mesaName}`;
+      }, 500);
+    };
+
     return (
-      <Card className="max-w-md mx-auto mt-8 p-8 text-center">
-        <div className="text-6xl mb-4 animate-bounce">🎉</div>
-        <h2 className="text-2xl font-bold text-expendio-teal mb-4">¡Éxito!</h2>
-        <p className="text-gray-700 whitespace-pre-line">{message}</p>
-      </Card>
+      <>
+        <Card className="max-w-md mx-auto mt-8 p-8 text-center">
+          <div className="text-6xl mb-4 animate-bounce">🎉</div>
+          <h2 className="text-2xl font-bold text-expendio-teal mb-4">¡Éxito!</h2>
+          <p className="text-gray-700 whitespace-pre-line">{message}</p>
+          {!showPrizeModal && (
+            <p className="text-sm text-gray-500 mt-4">Preparando tu sorpresa...</p>
+          )}
+        </Card>
+
+        <PrizeModal
+          isOpen={showPrizeModal}
+          onClose={handlePrizeModalClose}
+          clienteId={clienteId}
+          clienteNombre={formData.nombre || returningUser?.nombre}
+          clienteTelefono={formData.telefono}
+        />
+      </>
     );
   }
 
