@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Button } from './common/Button';
 
 export interface Prize {
@@ -6,11 +6,11 @@ export interface Prize {
   name: string;
   icon: string;
   color: string;
-  probability: number; // 0-100
+  probability: number;
 }
 
 interface SpinWheelProps {
-  prizes: Prize[];
+  prizes?: Prize[];
   onSpinComplete: (prize: Prize) => void;
   disabled?: boolean;
 }
@@ -32,8 +32,6 @@ const SpinWheel: React.FC<SpinWheelProps> = ({
 }) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
-  const [selectedPrize, setSelectedPrize] = useState<Prize | null>(null);
-  const wheelRef = useRef<HTMLDivElement>(null);
 
   const selectPrizeByProbability = (): Prize => {
     const totalProb = prizes.reduce((sum, p) => sum + p.probability, 0);
@@ -50,100 +48,86 @@ const SpinWheel: React.FC<SpinWheelProps> = ({
     if (isSpinning || disabled) return;
 
     setIsSpinning(true);
-    setSelectedPrize(null);
 
     const prize = selectPrizeByProbability();
     const prizeIndex = prizes.findIndex(p => p.id === prize.id);
-
-    // Calcular rotación para que el premio quede arriba (en el indicador)
     const segmentAngle = 360 / prizes.length;
     const prizeAngle = prizeIndex * segmentAngle;
 
-    // Girar múltiples vueltas + posición del premio
-    const spins = 5 + Math.random() * 3; // 5-8 vueltas
+    // 5-8 vueltas + posición del premio
+    const spins = 5 + Math.random() * 3;
     const finalRotation = rotation + (spins * 360) + (360 - prizeAngle) - (segmentAngle / 2);
 
     setRotation(finalRotation);
 
-    // Esperar a que termine la animación
     setTimeout(() => {
       setIsSpinning(false);
-      setSelectedPrize(prize);
       onSpinComplete(prize);
     }, 4000);
   };
 
+  // Crear gradiente cónico para los segmentos
   const segmentAngle = 360 / prizes.length;
+  const conicGradient = prizes.map((prize, i) => {
+    const start = i * segmentAngle;
+    const end = (i + 1) * segmentAngle;
+    return `${prize.color} ${start}deg ${end}deg`;
+  }).join(', ');
 
   return (
     <div className="flex flex-col items-center gap-6">
       {/* Indicador */}
       <div className="relative">
-        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-10">
-          <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-t-[25px] border-l-transparent border-r-transparent border-t-expendio-red drop-shadow-lg" />
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10 text-4xl">
+          ▼
         </div>
 
-        {/* Ruleta */}
+        {/* Ruleta simplificada con conic-gradient */}
         <div
-          ref={wheelRef}
-          className="relative w-72 h-72 rounded-full shadow-2xl overflow-hidden border-4 border-expendio-dark"
+          className="relative w-64 h-64 rounded-full shadow-2xl border-4 border-gray-800"
           style={{
+            background: `conic-gradient(${conicGradient})`,
             transform: `rotate(${rotation}deg)`,
             transition: isSpinning ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none'
           }}
         >
+          {/* Iconos en cada segmento */}
           {prizes.map((prize, index) => {
-            const startAngle = index * segmentAngle;
-            const endAngle = startAngle + segmentAngle;
+            const angle = index * segmentAngle + segmentAngle / 2 - 90;
+            const radius = 85;
+            const x = 50 + radius * Math.cos(angle * Math.PI / 180) / 1.28;
+            const y = 50 + radius * Math.sin(angle * Math.PI / 180) / 1.28;
 
-            // Crear segmento con CSS conic-gradient
             return (
-              <div
+              <span
                 key={prize.id}
-                className="absolute w-full h-full flex items-center justify-center"
+                className="absolute text-xl"
                 style={{
-                  clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((startAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((startAngle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((endAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((endAngle - 90) * Math.PI / 180)}%)`,
-                  backgroundColor: prize.color,
+                  left: `${x}%`,
+                  top: `${y}%`,
+                  transform: 'translate(-50%, -50%)'
                 }}
               >
-                <span
-                  className="absolute text-2xl"
-                  style={{
-                    transform: `rotate(${startAngle + segmentAngle / 2}deg) translateY(-90px)`,
-                    transformOrigin: 'center center'
-                  }}
-                >
-                  {prize.icon}
-                </span>
-              </div>
+                {prize.icon}
+              </span>
             );
           })}
 
-          {/* Centro de la ruleta */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center border-4 border-expendio-dark">
-            <span className="text-2xl">🎰</span>
+          {/* Centro */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center border-4 border-gray-800">
+            <span className="text-xl">🎰</span>
           </div>
         </div>
       </div>
 
-      {/* Botón de girar */}
+      {/* Botón */}
       <Button
         onClick={handleSpin}
         disabled={isSpinning || disabled}
         className="px-8 py-4 text-xl font-bold"
       >
-        {isSpinning ? '🎰 Girando...' : '🎯 ¡GIRAR RULETA!'}
+        {isSpinning ? '🎰 Girando...' : '🎯 ¡GIRAR!'}
       </Button>
-
-      {/* Premio seleccionado */}
-      {selectedPrize && !isSpinning && (
-        <div className="text-center animate-bounce">
-          <p className="text-lg text-gray-600">¡Ganaste!</p>
-          <p className="text-3xl font-bold text-expendio-dark">
-            {selectedPrize.icon} {selectedPrize.name}
-          </p>
-        </div>
-      )}
     </div>
   );
 };

@@ -5,6 +5,23 @@ import type { Prize } from './SpinWheel';
 import { createCoupon, getWhatsAppUrl, BUSINESS_CONFIG, PRIZES } from '../services/prizeService';
 import type { Coupon } from '../services/prizeService';
 
+// Error boundary simple
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) {
+      return <div className="text-center p-4"><p>Error al cargar. <button onClick={() => window.location.reload()} className="underline">Recargar</button></p></div>;
+    }
+    return this.props.children;
+  }
+}
+
 interface PrizeModalProps {
   isOpen: boolean;
   onClose: () => void;
