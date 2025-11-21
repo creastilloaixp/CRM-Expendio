@@ -20,7 +20,8 @@
 ## Roadmap - Siguientes Pasos
 
 ### Prioridad Alta
-- [ ] Inicializar repositorio Git
+- [x] Inicializar repositorio Git (commit: 6c0371f)
+- [x] Subir a GitHub: https://github.com/creastilloaixp/CRM-Expendio/
 - [ ] Escribir tests con Playwright
 - [ ] Validar configuración de variables de entorno en Vercel
 - [ ] Fortalecer autenticación con Supabase Auth

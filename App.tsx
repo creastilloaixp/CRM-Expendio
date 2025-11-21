@@ -3,6 +3,7 @@ import Header from './components/Header';
 import LoadingSpinner from './components/LoadingSpinner';
 import { staffLogin } from './services/api';
 import { adminRegistration } from './services/adminRegistration';
+import { supabase } from './services/supabaseClient';
 
 // Lazy loading de componentes para mejorar performance
 const EnhancedLogin = lazy(() => import('./components/EnhancedLogin'));
@@ -24,6 +25,30 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('login');
   const [checkInMesa, setCheckInMesa] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Verificar sesión existente al cargar y escuchar cambios
+  useEffect(() => {
+    // Verificar sesión actual
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setIsAuthenticated(true);
+      }
+    };
+    checkSession();
+
+    // Escuchar cambios de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        setIsAuthenticated(true);
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        window.location.hash = '/login';
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const parseHash = useCallback(() => {
     console.log('🌍 App: parseHash llamado');
@@ -130,7 +155,8 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setIsAuthenticated(false);
     window.location.hash = '/login';
   };
