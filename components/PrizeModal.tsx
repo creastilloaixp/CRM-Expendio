@@ -58,13 +58,17 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
     setWonPrize(prize);
 
     // Crear cupón si no es "suerte para la próxima"
-    if (prize.id !== 'suerte') {
+    if (prize.id !== 'suerte' && clienteId) {
       setIsCreatingCoupon(true);
-      const fullPrize = PRIZES.find(p => p.id === prize.id) || prize;
-      const { data } = await createCoupon(fullPrize, clienteId, clienteNombre, clienteTelefono);
-      if (data) {
-        setCoupon(data);
-        onPrizeAwarded?.(prize, data);
+      try {
+        const fullPrize = PRIZES.find(p => p.id === prize.id) || prize;
+        const { data } = await createCoupon(fullPrize, clienteId, clienteNombre, clienteTelefono);
+        if (data) {
+          setCoupon(data);
+          onPrizeAwarded?.(prize, data);
+        }
+      } catch (err) {
+        console.error('Error creando cupón:', err);
       }
       setIsCreatingCoupon(false);
     }
