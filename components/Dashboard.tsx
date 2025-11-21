@@ -22,6 +22,7 @@ const Dashboard: React.FC = () => {
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [showNotifications, setShowNotifications] = useState<boolean>(true);
   const [showAIAssistant, setShowAIAssistant] = useState<boolean>(false);
+  const [notificationPermission, setNotificationPermission] = useState<string>('default');
 
   const fetchMesas = useCallback(async () => {
     setLoading(true);
@@ -51,6 +52,23 @@ const Dashboard: React.FC = () => {
       setReservas(data);
     }
   }, []);
+
+  // Verificar permisos de notificaciones al cargar
+  useEffect(() => {
+    setNotificationPermission(NotificationService.checkPermission());
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    const granted = await NotificationService.requestPermission();
+    setNotificationPermission(granted ? 'granted' : 'denied');
+    if (granted) {
+      NotificationService.send('🔔 Notificaciones Activadas', {
+        body: 'Recibirás alertas cuando los clientes te necesiten',
+        playSound: true,
+        soundType: 'success'
+      });
+    }
+  };
 
   useEffect(() => {
     fetchMesas();
@@ -265,6 +283,15 @@ const Dashboard: React.FC = () => {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Gestión de Mesas</h1>
           <div className="flex gap-3 items-center">
+            {notificationPermission !== 'granted' && (
+              <Button
+                onClick={handleEnableNotifications}
+                variant="outline"
+                className="text-sm"
+              >
+                🔔 Activar Notificaciones
+              </Button>
+            )}
             {notificaciones.length > 0 && (
               <button
                 onClick={() => setShowNotifications(!showNotifications)}

@@ -3,8 +3,26 @@
  * Maneja permisos y envío de notificaciones de forma unificada
  */
 
+// Sonidos de notificación (base64 o URLs)
+const NOTIFICATION_SOUNDS = {
+    alert: '/sounds/alert.mp3',
+    success: '/sounds/success.mp3',
+    call: '/sounds/call.mp3'
+};
+
 export class NotificationService {
     private static hasPermission = false;
+    private static audioContext: AudioContext | null = null;
+
+    /**
+     * Verificar estado de permisos sin solicitar
+     */
+    static checkPermission(): 'granted' | 'denied' | 'default' | 'unsupported' {
+        if (!('Notification' in window)) {
+            return 'unsupported';
+        }
+        return Notification.permission;
+    }
 
     /**
      * Inicializar el servicio y solicitar permisos
@@ -30,11 +48,76 @@ export class NotificationService {
     }
 
     /**
+     * Solicitar permisos explícitamente (para botón UI)
+     */
+    static async requestPermission(): Promise<boolean> {
+        if (!('Notification' in window)) {
+            return false;
+        }
+
+        try {
+            const permission = await Notification.requestPermission();
+            this.hasPermission = permission === 'granted';
+            return this.hasPermission;
+        } catch (error) {
+            console.error('Error solicitando permisos:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Reproducir sonido de alerta
+     */
+    static playSound(type: 'alert' | 'success' | 'call' = 'alert'): void {
+        try {
+            // Intentar reproducir sonido
+            const audio = new Audio(NOTIFICATION_SOUNDS[type]);
+            audio.volume = 0.5;
+            audio.play().catch(() => {
+                // Fallback: usar Web Audio API para generar beep
+                this.playBeep();
+            });
+        } catch {
+            this.playBeep();
+        }
+    }
+
+    /**
+     * Generar beep con Web Audio API (fallback)
+     */
+    private static playBeep(): void {
+        try {
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            }
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            gainNode.gain.value = 0.3;
+
+            oscillator.start();
+            setTimeout(() => oscillator.stop(), 200);
+        } catch {
+            // Silenciar errores de audio
+        }
+    }
+
+    /**
      * Enviar una notificación
      */
-    static async send(title: string, options?: NotificationOptions): Promise<void> {
+    static async send(title: string, options?: NotificationOptions & { playSound?: boolean; soundType?: 'alert' | 'success' | 'call' }): Promise<void> {
         if (!this.hasPermission) {
             await this.init();
+        }
+
+        // Reproducir sonido si está habilitado
+        if (options?.playSound !== false) {
+            this.playSound(options?.soundType || 'alert');
         }
 
         if (!this.hasPermission) {
@@ -52,6 +135,12 @@ export class NotificationService {
 
             // Auto-cerrar después de 5 segundos
             setTimeout(() => notification.close(), 5000);
+
+            // Click handler para enfocar la ventana
+            notification.onclick = () => {
+                window.focus();
+                notification.close();
+            };
         } catch (error) {
             console.error('❌ Error al enviar notificación:', error);
         }
@@ -64,7 +153,8 @@ export class NotificationService {
         await this.send('🍽️ Nuevo Pedido en Cocina', {
             body: `Mesa ${mesa}: ${producto}`,
             tag: 'new-order',
-            vibrate: [200, 100, 200]
+            vibrate: [200, 100, 200],
+            soundType: 'alert'
         });
     }
 
@@ -72,10 +162,12 @@ export class NotificationService {
      * Notificación para llamar mesero
      */
     static async notifyCallWaiter(mesa: string): Promise<void> {
-        await this.send('🙋 Cliente solicita Mesero', {
-            body: `Mesa ${mesa} necesita atención`,
+        await this.send('🙋 ¡MESERO SOLICITADO!', {
+            body: `Mesa ${mesa} necesita atención AHORA`,
             tag: 'call-waiter',
-            vibrate: [200]
+            vibrate: [200, 100, 200, 100, 200],
+            requireInteraction: true,
+            soundType: 'call'
         });
     }
 
@@ -86,7 +178,9 @@ export class NotificationService {
         await this.send('💰 Cliente solicita la Cuenta', {
             body: `Mesa ${mesa} está lista para pagar`,
             tag: 'request-bill',
-            vibrate: [200, 100, 200]
+            vibrate: [200, 100, 200],
+            requireInteraction: true,
+            soundType: 'call'
         });
     }
 
@@ -97,7 +191,8 @@ export class NotificationService {
         await this.send('📅 Nueva Reserva', {
             body: `${clientName} - Mesa ${mesa} a las ${time}`,
             tag: 'new-reservation',
-            vibrate: [100]
+            vibrate: [100],
+            soundType: 'success'
         });
     }
 
@@ -109,7 +204,8 @@ export class NotificationService {
             body: `${clientName} - Mesa ${mesa} en ${minutes} minutos`,
             tag: 'upcoming-reservation',
             requireInteraction: true,
-            vibrate: [200, 100, 200, 100, 200]
+            vibrate: [200, 100, 200, 100, 200],
+            soundType: 'alert'
         });
     }
 
