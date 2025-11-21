@@ -171,9 +171,9 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
     setLoadingPuntos(false);
   };
 
-  // Calcular descuento disponible (10 puntos = $50 de descuento)
+  // Calcular descuento disponible (10 personas/puntos = $50 de descuento, o sea $5 por punto)
   const descuentoDisponible = Math.floor(puntosActuales / 10) * 50;
-  const puntosParaSiguienteDescuento = 10 - (puntosActuales % 10);
+  const puntosParaSiguienteDescuento = puntosActuales < 10 ? (10 - puntosActuales) : (10 - (puntosActuales % 10));
 
   const handleOnboardingComplete = () => {
     localStorage.setItem('expendio_onboarding_seen', 'true');
@@ -346,16 +346,16 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
         localStorage.setItem('expendio_visita_id', visitData.visita_id);
       }
 
-      // Mensaje de bienvenida con puntos y nuevo chisme
-      const puntosIniciales = isFirstTime ? 50 : 0;
-      const puntosMesa = numeroPersonas * 10;
+      // Mensaje de bienvenida con puntos (1 punto por persona, 10 personas = $50)
+      const puntosIniciales = isFirstTime ? 5 : 0; // 5 puntos de regalo = $25 de valor
+      const puntosMesa = numeroPersonas; // 1 punto por persona
       const totalPuntos = puntosIniciales + puntosMesa;
 
       // Mensajes personalizados para primer visita
       const mensajesPrimerVisita = [
-        `¡Bienvenido a Expendio, ${formData.nombre}! 🎊\n\n${isFirstTime ? `🎁 Regalo de bienvenida: ${puntosIniciales} puntos\n` : ''}⭐ Ganaste ${puntosMesa} puntos por ${numeroPersonas} persona(s)\n💰 Total: ${totalPuntos} puntos acumulados\n\n🍽️ Te recomendamos probar nuestros tacos de cochinita, son el favorito de nuestros clientes.`,
-        `¡Hola ${formData.nombre}! 🌟\n\n${isFirstTime ? `🎁 Por tu primera visita: ${puntosIniciales} puntos\n` : ''}⭐ ${puntosMesa} puntos ganados\n💰 Total: ${totalPuntos} puntos\n\n🍹 No te pierdas nuestro mezcal artesanal de la casa.`,
-        `¡Bienvenido ${formData.nombre}! 🎉\n\n${isFirstTime ? `🎁 ${puntosIniciales} puntos de regalo\n` : ''}⭐ ${puntosMesa} puntos por tu visita\n💰 ${totalPuntos} puntos totales\n\n🎵 Esta noche tenemos ambiente en vivo, ¡disfruta!`
+        `¡Bienvenido a Expendio, ${formData.nombre}! 🎊\n\n${isFirstTime ? `🎁 Regalo de bienvenida: ${puntosIniciales} puntos\n` : ''}⭐ Ganaste ${puntosMesa} punto${puntosMesa > 1 ? 's' : ''} por ${numeroPersonas} persona(s)\n💰 Total: ${totalPuntos} puntos (10 pts = $50 de descuento)\n\n🍽️ Te recomendamos probar nuestros tacos de cochinita.`,
+        `¡Hola ${formData.nombre}! 🌟\n\n${isFirstTime ? `🎁 Por tu primera visita: ${puntosIniciales} puntos\n` : ''}⭐ ${puntosMesa} punto${puntosMesa > 1 ? 's' : ''} ganado${puntosMesa > 1 ? 's' : ''}\n💰 Total: ${totalPuntos} puntos\n\n🍹 No te pierdas nuestro mezcal artesanal de la casa.`,
+        `¡Bienvenido ${formData.nombre}! 🎉\n\n${isFirstTime ? `🎁 ${puntosIniciales} puntos de regalo\n` : ''}⭐ ${puntosMesa} punto${puntosMesa > 1 ? 's' : ''} por tu visita\n💰 ${totalPuntos} puntos totales\n\n🎵 Esta noche tenemos ambiente en vivo, ¡disfruta!`
       ];
 
       const mensajeBienvenida = mensajesPrimerVisita[Math.floor(Math.random() * mensajesPrimerVisita.length)];
@@ -450,7 +450,7 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
   }
 
   if (status === 'welcome_back') {
-    const puntosGanar = numeroPersonas * 10;
+    const puntosGanar = numeroPersonas; // 1 punto por persona
     const nuevoTotal = puntosActuales + puntosGanar;
     const nuevoDescuento = Math.floor(nuevoTotal / 10) * 50;
 
@@ -487,11 +487,11 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
           )}
 
           <div className="text-xs text-gray-600 space-y-1">
-            <p>• <strong>10 puntos = $50</strong> de descuento</p>
-            <p>• Ganas <strong>10 puntos</strong> por cada persona en tu mesa</p>
-            {puntosParaSiguienteDescuento < 10 && descuentoDisponible === 0 && (
+            <p>• <strong>10 personas = $50</strong> de descuento</p>
+            <p>• Ganas <strong>1 punto</strong> por cada persona en tu mesa</p>
+            {puntosParaSiguienteDescuento > 0 && puntosParaSiguienteDescuento <= 10 && (
               <p className="text-expendio-primary font-medium">
-                ⭐ Te faltan {puntosParaSiguienteDescuento} puntos para tu primer descuento
+                ⭐ Te faltan {puntosParaSiguienteDescuento} personas para {descuentoDisponible > 0 ? 'otro' : 'tu primer'} descuento de $50
               </p>
             )}
           </div>
@@ -566,7 +566,10 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
         {isFirstTime && (
           <div className="mt-3 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
             <p className="text-sm text-yellow-800 font-bold">
-              🎁 Regalo de bienvenida: ¡50 puntos gratis!
+              🎁 Regalo de bienvenida: ¡5 puntos gratis!
+            </p>
+            <p className="text-xs text-yellow-700 mt-1">
+              (10 puntos = $50 de descuento)
             </p>
           </div>
         )}
@@ -633,7 +636,7 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
             </Button>
           </div>
           <p className="text-xs text-gray-500 mt-2 text-center">
-            Ganarás {numeroPersonas * 10} puntos
+            Ganarás {numeroPersonas} punto{numeroPersonas > 1 ? 's' : ''}
           </p>
         </div>
 

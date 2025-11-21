@@ -37,6 +37,14 @@
 - [x] Recomendaciones de productos personalizadas
 - [x] Dashboard unificado de IA (`/ai-dashboard`)
 
+### Programa de Lealtad (Completado - commit: de50532)
+- [x] Cliente recurrente ve pantalla welcome_back (no auto check-in)
+- [x] Mostrar puntos acumulados
+- [x] Selector de número de personas
+- [x] Cálculo dinámico: 10 puntos = $50 de descuento
+- [x] Preview de puntos a ganar
+- [x] Opción cambiar cuenta
+
 ### Flujo de Mesas y Reservas (Completado - commit: dadf79a)
 - [x] Modal de mesa reservada con botones de acción
 - [x] Confirmar llegada del cliente (convierte reserva en visita)
