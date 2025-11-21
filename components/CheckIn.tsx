@@ -260,10 +260,24 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
       }
 
       // Guardar visita_id en localStorage (el RPC puede retornar en diferentes formatos)
-      const visitaId = data?.visita_id || data?.id || (typeof data === 'string' ? data : null);
-      console.log('📝 startVisit response:', data, 'visitaId extraído:', visitaId);
+      let visitaId = null;
+      if (typeof data === 'string') {
+        // Si es string, intentar parsear como JSON
+        try {
+          const parsed = JSON.parse(data);
+          visitaId = parsed.visita_id || parsed.id;
+        } catch {
+          visitaId = data;
+        }
+      } else if (data) {
+        visitaId = data.visita_id || data.id;
+      }
+      console.log('📝 startVisit response:', JSON.stringify(data), 'visitaId extraído:', visitaId);
       if (visitaId) {
         localStorage.setItem('expendio_visita_id', visitaId);
+        console.log('✅ visita_id guardado en localStorage:', visitaId);
+      } else {
+        console.error('❌ No se pudo extraer visita_id de:', data);
       }
 
       // Guardar cliente_id para la ruleta
@@ -354,10 +368,23 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
       }
 
       // Guardar visita_id en localStorage (el RPC puede retornar en diferentes formatos)
-      const visitaId = visitData?.visita_id || visitData?.id || (typeof visitData === 'string' ? visitData : null);
-      console.log('📝 startVisit response (nuevo):', visitData, 'visitaId extraído:', visitaId);
-      if (visitaId) {
-        localStorage.setItem('expendio_visita_id', visitaId);
+      let visitaIdNuevo = null;
+      if (typeof visitData === 'string') {
+        try {
+          const parsed = JSON.parse(visitData);
+          visitaIdNuevo = parsed.visita_id || parsed.id;
+        } catch {
+          visitaIdNuevo = visitData;
+        }
+      } else if (visitData) {
+        visitaIdNuevo = visitData.visita_id || visitData.id;
+      }
+      console.log('📝 startVisit response (nuevo):', JSON.stringify(visitData), 'visitaId:', visitaIdNuevo);
+      if (visitaIdNuevo) {
+        localStorage.setItem('expendio_visita_id', visitaIdNuevo);
+        console.log('✅ visita_id guardado en localStorage:', visitaIdNuevo);
+      } else {
+        console.error('❌ No se pudo extraer visita_id de:', visitData);
       }
 
       // Guardar cliente_id para la ruleta
