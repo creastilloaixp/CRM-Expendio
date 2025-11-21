@@ -259,9 +259,11 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
         return;
       }
 
-      // Guardar visita_id en localStorage
-      if (data?.visita_id) {
-        localStorage.setItem('expendio_visita_id', data.visita_id);
+      // Guardar visita_id en localStorage (el RPC puede retornar en diferentes formatos)
+      const visitaId = data?.visita_id || data?.id || (typeof data === 'string' ? data : null);
+      console.log('📝 startVisit response:', data, 'visitaId extraído:', visitaId);
+      if (visitaId) {
+        localStorage.setItem('expendio_visita_id', visitaId);
       }
 
       // Guardar cliente_id para la ruleta
@@ -351,9 +353,11 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
         return;
       }
 
-      // Guardar visita_id en localStorage
-      if (visitData?.visita_id) {
-        localStorage.setItem('expendio_visita_id', visitData.visita_id);
+      // Guardar visita_id en localStorage (el RPC puede retornar en diferentes formatos)
+      const visitaId = visitData?.visita_id || visitData?.id || (typeof visitData === 'string' ? visitData : null);
+      console.log('📝 startVisit response (nuevo):', visitData, 'visitaId extraído:', visitaId);
+      if (visitaId) {
+        localStorage.setItem('expendio_visita_id', visitaId);
       }
 
       // Guardar cliente_id para la ruleta
