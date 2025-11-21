@@ -1,6 +1,6 @@
 import React from 'react';
 
-type NavigationView = 'dashboard' | 'reports' | 'reservations' | 'analytics' | 'chatbot' | 'voice-assistant' | 'clientes' | 'kitchen';
+type NavigationView = 'dashboard' | 'reports' | 'reservations' | 'analytics' | 'chatbot' | 'voice-assistant' | 'clientes' | 'kitchen' | 'ai-dashboard';
 
 interface HeaderProps {
   isAuthenticated: boolean;
@@ -42,6 +42,7 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated, onLogout, onNavigate, 
               <NavButton view="reports" label="Reportes" />
               <NavButton view="reservations" label="Reservas" />
               <NavButton view="analytics" label="Análisis" />
+              <NavButton view="ai-dashboard" label="🤖 IA Business" />
               <NavButton view="chatbot" label="Chatbot" />
               <NavButton view="voice-assistant" label="Asistente de Voz" />
             </nav>
@@ -62,6 +63,7 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated, onLogout, onNavigate, 
             <NavButton view="reports" label="Reportes" />
             <NavButton view="reservations" label="Reservas" />
             <NavButton view="analytics" label="Análisis" />
+            <NavButton view="ai-dashboard" label="🤖 IA Business" />
             <NavButton view="chatbot" label="Chatbot" />
             <NavButton view="voice-assistant" label="Asistente de Voz" />
           </nav>

@@ -17,8 +17,9 @@ const Chatbot = lazy(() => import('./components/Chatbot'));
 const VoiceAssistant = lazy(() => import('./components/VoiceAssistant'));
 const Clientes = lazy(() => import('./components/Clientes'));
 const Kitchen = lazy(() => import('./components/Kitchen'));
+const AIBusinessDashboard = lazy(() => import('./components/AIBusinessDashboard'));
 
-type View = 'login' | 'dashboard' | 'reports' | 'checkin' | 'reservations' | 'menu' | 'analytics' | 'chatbot' | 'voice-assistant' | 'clientes' | 'kitchen';
+type View = 'login' | 'dashboard' | 'reports' | 'checkin' | 'reservations' | 'menu' | 'analytics' | 'chatbot' | 'voice-assistant' | 'clientes' | 'kitchen' | 'ai-dashboard';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -104,6 +105,9 @@ const App: React.FC = () => {
         case '/kitchen':
           setCurrentView('kitchen');
           break;
+        case '/ai-dashboard':
+          setCurrentView('ai-dashboard');
+          break;
         default:
           setCurrentView('dashboard');
       }
@@ -161,7 +165,7 @@ const App: React.FC = () => {
     window.location.hash = '/login';
   };
   
-  const navigate = (view: 'dashboard' | 'reports' | 'reservations' | 'analytics' | 'chatbot' | 'voice-assistant') => {
+  const navigate = (view: 'dashboard' | 'reports' | 'reservations' | 'analytics' | 'chatbot' | 'voice-assistant' | 'clientes' | 'kitchen' | 'ai-dashboard') => {
       window.location.hash = `/${view}`;
   };
 
@@ -207,6 +211,8 @@ const App: React.FC = () => {
         return <Clientes />;
       case 'kitchen':
         return <Kitchen />;
+      case 'ai-dashboard':
+        return <AIBusinessDashboard />;
       default:
         return <Dashboard />;
     }

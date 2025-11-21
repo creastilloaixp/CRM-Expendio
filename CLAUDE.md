@@ -23,8 +23,11 @@
 - [x] Inicializar repositorio Git (commit: 6c0371f)
 - [x] Subir a GitHub: https://github.com/creastilloaixp/CRM-Expendio/
 - [ ] Escribir tests con Playwright
-- [ ] Validar configuración de variables de entorno en Vercel
-- [ ] Fortalecer autenticación con Supabase Auth
+- [x] Validar configuración de variables de entorno en Vercel (documentado)
+- [x] Fortalecer autenticación con Supabase Auth (commit: 5b28291)
+  - Persistencia de sesión al recargar
+  - Listener de cambios de auth
+  - Logout correcto
 
 ### Funcionalidades Pendientes
 - [ ] Notificaciones push (PWA)

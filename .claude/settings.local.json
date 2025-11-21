@@ -17,7 +17,10 @@
       "Bash(cat:*)",
       "Bash(git init:*)",
       "Bash(git reset:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(npx playwright test:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []
