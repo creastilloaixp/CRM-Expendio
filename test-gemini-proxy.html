@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Gemini Proxy</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.pending {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+        .status.success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .config {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+        .info {
+            background: #d1ecf1;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Gemini Proxy Edge Function</h1>
+        <p>Esta herramienta prueba que tu Edge Function de Supabase funcione correctamente.</p>
+
+        <div class="config">
+            <h3>⚙️ Configuración</h3>
+
+            <label for="supabaseUrl">Supabase URL:</label>
+            <input
+                type="text"
+                id="supabaseUrl"
+                value="https://fdinliimdxkkgyqvadvq.supabase.co"
+                placeholder="https://tu-proyecto.supabase.co"
+            >
+
+            <label for="anonKey">Supabase Anon Key:</label>
+            <input
+                type="text"
+                id="anonKey"
+                value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaW5saWltZHhra2d5cXZhZHZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5ODU2OTEsImV4cCI6MjA3ODU2MTY5MX0.DTGFOkW-yApktMevqgMwvp9TbVjxf2chEGg4rkMeXfQ"
+                placeholder="Tu Supabase Anon Key"
+            >
+
+            <label for="prompt">Prompt de prueba:</label>
+            <input
+                type="text"
+                id="prompt"
+                value="Responde: PROXY FUNCIONANDO CORRECTAMENTE con la nueva API Key"
+                placeholder="Escribe un prompt para probar"
+            >
+        </div>
+
+        <div class="info">
+            <strong>📌 Antes de probar:</strong><br>
+            1. Ve a <a href="https://supabase.com/dashboard" target="_blank">Supabase Dashboard</a><br>
+            2. Crea la Edge Function "gemini-proxy"<br>
+            3. Configura el secret GEMINI_API_KEY<br>
+            4. Espera 1-2 minutos para que se despliegue
+        </div>
+
+        <button onclick="testProxy()" id="testBtn">🚀 Probar Proxy</button>
+        <button onclick="testDirect()" id="directBtn">🔓 Probar API Directa (Inseguro)</button>
+
+        <div id="status" class="status pending">
+            ⏳ Esperando test...
+        </div>
+
+        <div id="response" class="response" style="display: none;"></div>
+    </div>
+
+    <script>
+        async function testProxy() {
+            const statusEl = document.getElementById('status');
+            const responseEl = document.getElementById('response');
+            const testBtn = document.getElementById('testBtn');
+
+            const supabaseUrl = document.getElementById('supabaseUrl').value;
+            const anonKey = document.getElementById('anonKey').value;
+            const prompt = document.getElementById('prompt').value;
+
+            testBtn.disabled = true;
+            statusEl.className = 'status pending';
+            statusEl.textContent = '⏳ Llamando a Edge Function...';
+            responseEl.style.display = 'none';
+
+            try {
+                const url = `${supabaseUrl}/functions/v1/gemini-proxy`;
+
+                console.log('🌐 URL:', url);
+                console.log('📝 Prompt:', prompt);
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${anonKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        model: 'gemini-2.0-flash-exp'
+                    })
+                });
+
+                console.log('📡 Status:', response.status);
+
+                const data = await response.json();
+                console.log('📦 Response:', data);
+
+                if (response.ok && data.text) {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = '✅ ¡Éxito! La Edge Function funciona correctamente.';
+
+                    responseEl.textContent = `Respuesta de Gemini:\n\n${data.text}\n\n---\n\nDetalles técnicos:\nURL: ${url}\nStatus: ${response.status}\nModel: gemini-2.0-flash-exp`;
+                    responseEl.style.display = 'block';
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+
+                statusEl.className = 'status error';
+                statusEl.textContent = `❌ Error: ${error.message}`;
+
+                responseEl.textContent = `Error details:\n\n${error.message}\n\nPosibles causas:\n- La Edge Function no está desplegada\n- El secret GEMINI_API_KEY no está configurado\n- El Anon Key es incorrecto\n- CORS bloqueado\n\nRevisa:\n1. Supabase Dashboard → Edge Functions\n2. Settings → Edge Functions → Secrets`;
+                responseEl.style.display = 'block';
+            } finally {
+                testBtn.disabled = false;
+            }
+        }
+
+        async function testDirect() {
+            const statusEl = document.getElementById('status');
+            const responseEl = document.getElementById('response');
+            const directBtn = document.getElementById('directBtn');
+
+            const prompt = document.getElementById('prompt').value;
+
+            statusEl.className = 'status error';
+            statusEl.textContent = '⚠️ ADVERTENCIA: Esto expone tu API Key en el cliente. Solo para demostración.';
+
+            alert('⚠️ ADVERTENCIA\n\nEsta es una demostración de por qué NO debes usar la API directamente.\n\nTu API Key estaría visible en el código del cliente.\n\n¡Por eso necesitas el proxy!');
+        }
+    </script>
+</body>
+</html>

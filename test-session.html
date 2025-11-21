@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Session Creation</title>
+</head>
+<body>
+    <h1>Test Session Creation</h1>
+    <button onclick="testSession()">Create Test Session</button>
+    <div id="result"></div>
+    
+    <script>
+        function testSession() {
+            // Test localStorage session creation
+            const sessionData = {
+                user: { email: 'test@example.com', telefono: '1234567890' },
+                access_token: `client_${Date.now()}`,
+                refresh_token: `refresh_${Date.now()}`,
+                expires_at: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
+            };
+            
+            localStorage.setItem('expendio_session', JSON.stringify(sessionData));
+            localStorage.setItem('expendio_user_email', 'test@example.com');
+            localStorage.setItem('expendio_user_phone', '1234567890');
+            
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <h3>Session Created Successfully!</h3>
+                <p><strong>Email:</strong> ${sessionData.user.email}</p>
+                <p><strong>Phone:</strong> ${sessionData.user.telefono}</p>
+                <p><strong>Access Token:</strong> ${sessionData.access_token}</p>
+                <p><strong>Expires:</strong> ${new Date(sessionData.expires_at * 1000).toLocaleString()}</p>
+            `;
+            
+            console.log('Session data:', sessionData);
+            console.log('localStorage expendio_session:', localStorage.getItem('expendio_session'));
+            console.log('localStorage expendio_user_email:', localStorage.getItem('expendio_user_email'));
+            console.log('localStorage expendio_user_phone:', localStorage.getItem('expendio_user_phone'));
+        }
+    </script>
+</body>
+</html>

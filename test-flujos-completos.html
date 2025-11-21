@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test de Flujos Completos - CRM Expendio</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { color: #1e3a8a; border-bottom: 3px solid #1e3a8a; padding-bottom: 10px; }
+        h2 { color: #2563eb; margin-top: 30px; }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #1e40af; }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+        .success { color: #059669; font-weight: bold; }
+        .error { color: #dc2626; font-weight: bold; }
+        .info { color: #0284c7; }
+        .warning { color: #ea580c; }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 4px solid #3b82f6;
+            background: #eff6ff;
+        }
+        .step {
+            margin: 5px 0;
+            padding: 5px 10px;
+            background: #f1f5f9;
+            border-left: 3px solid #64748b;
+        }
+        .step.success { border-left-color: #10b981; background: #d1fae5; }
+        .step.error { border-left-color: #ef4444; background: #fee2e2; }
+        .controls {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test de Flujos Completos - CRM Expendio Oficial</h1>
+
+    <div class="controls">
+        <button onclick="limpiarResultados()">🗑️ Limpiar Resultados</button>
+        <button onclick="limpiarTodo()">⚠️ Limpiar Base de Datos (Reservas + Visitas)</button>
+        <button onclick="ejecutarTodosLosTests()">▶️ Ejecutar Todos los Tests</button>
+    </div>
+
+    <div class="test-section">
+        <h2>1️⃣ Test: Flujo Completo de Reserva</h2>
+        <p><strong>Simula:</strong> Crear reserva → Marcar llegada → Liberar mesa</p>
+        <button onclick="testFlujoReservaCompleto()">▶️ Ejecutar Test</button>
+        <div id="resultado-test1"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2️⃣ Test: Flujo de Cancelación de Reserva</h2>
+        <p><strong>Simula:</strong> Crear reserva → Cancelar reserva</p>
+        <button onclick="testCancelacionReserva()">▶️ Ejecutar Test</button>
+        <div id="resultado-test2"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3️⃣ Test: Check-in Directo (sin reserva)</h2>
+        <p><strong>Simula:</strong> Cliente llega sin reserva → Check-in → Liberar mesa</p>
+        <button onclick="testCheckInDirecto()">▶️ Ejecutar Test</button>
+        <div id="resultado-test3"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4️⃣ Test: Múltiples Reservas con Diferentes Clientes</h2>
+        <p><strong>Simula:</strong> Crear 3 reservas con clientes distintos</p>
+        <button onclick="testMultiplesReservas()">▶️ Ejecutar Test</button>
+        <div id="resultado-test4"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5️⃣ Test: Sincronización Dashboard ↔ Reservations</h2>
+        <p><strong>Simula:</strong> Verificar que datos fluyen correctamente entre módulos</p>
+        <button onclick="testSincronizacion()">▶️ Ejecutar Test</button>
+        <div id="resultado-test5"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Estado Actual del Sistema</h2>
+        <button onclick="mostrarEstadoSistema()">🔍 Ver Estado</button>
+        <div id="estado-sistema"></div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://fdinliimdxkkgyqvadvq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaW5saWltZHhra2d5cXZhZHZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5ODU2OTEsImV4cCI6MjA3ODU2MTY5MX0.DTGFOkW-yApktMevqgMwvp9TbVjxf2chEGg4rkMeXfQ';
+
+        const { createClient } = supabase;
+        const client = createClient(supabaseUrl, supabaseKey);
+
+        // Utilidades
+        function log(resultId, message, type = 'info') {
+            const colors = {
+                success: '#059669',
+                error: '#dc2626',
+                info: '#0284c7',
+                warning: '#ea580c'
+            };
+            const elem = document.getElementById(resultId);
+            const div = document.createElement('div');
+            div.className = `step ${type}`;
+            div.innerHTML = `<span style="color: ${colors[type]}">${message}</span>`;
+            elem.appendChild(div);
+        }
+
+        function limpiarResultados() {
+            ['resultado-test1', 'resultado-test2', 'resultado-test3', 'resultado-test4', 'resultado-test5', 'estado-sistema'].forEach(id => {
+                document.getElementById(id).innerHTML = '';
+            });
+        }
+
+        async function limpiarTodo() {
+            if (!confirm('⚠️ ADVERTENCIA: Esto eliminará TODAS las reservas y visitas de la base de datos. ¿Continuar?')) return;
+
+            try {
+                // Cancelar todas las reservas
+                await client.from('reservas').update({ estado: 'Cancelada' }).neq('id', '00000000-0000-0000-0000-000000000000');
+
+                // Cerrar todas las visitas abiertas
+                await client.from('visitas').update({ hora_salida: new Date().toISOString(), consumo_total: 0 }).is('hora_salida', null);
+
+                // Liberar todas las mesas
+                await client.from('mesas').update({ estado: 'Libre' }).neq('estado', 'Libre');
+
+                alert('✅ Base de datos limpiada. Todas las mesas liberadas.');
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        // TEST 1: Flujo Completo de Reserva
+        async function testFlujoReservaCompleto() {
+            const resultId = 'resultado-test1';
+            document.getElementById(resultId).innerHTML = '<p class="info">⏳ Ejecutando test...</p>';
+
+            try {
+                // Paso 1: Buscar una mesa libre
+                log(resultId, '1️⃣ Buscando mesa libre...', 'info');
+                const { data: mesas } = await client.from('mesas').select('*').eq('estado', 'Libre').limit(1);
+                if (!mesas || mesas.length === 0) {
+                    log(resultId, '❌ No hay mesas libres', 'error');
+                    return;
+                }
+                const mesa = mesas[0];
+                log(resultId, `✅ Mesa encontrada: ${mesa.nombre} (ID: ${mesa.id})`, 'success');
+
+                // Paso 2: Crear cliente de prueba
+                log(resultId, '2️⃣ Creando cliente de prueba...', 'info');
+                const testTelefono = `555-TEST-${Date.now()}`;
+                const testEmail = `${testTelefono}@test.local`;
+                const { data: cliente, error: errorCliente } = await client
+                    .from('clientes')
+                    .insert({
+                        nombre: 'Cliente Test Reserva',
+                        email: testEmail,
+                        telefono: testTelefono,
+                        marketing_opt_in: false
+                    })
+                    .select()
+                    .single();
+
+                if (errorCliente) throw errorCliente;
+                log(resultId, `✅ Cliente creado: ${cliente.nombre} (${cliente.telefono})`, 'success');
+
+                // Paso 3: Crear reserva
+                log(resultId, '3️⃣ Creando reserva...', 'info');
+                const fechaReserva = new Date();
+                fechaReserva.setHours(fechaReserva.getHours() + 2);
+
+                const { data: reserva, error: errorReserva } = await client
+                    .from('reservas')
+                    .insert({
+                        mesa_id: mesa.id,
+                        cliente_id: cliente.id,
+                        fecha_hora: fechaReserva.toISOString(),
+                        numero_personas: 4,
+                        estado: 'Confirmada'
+                    })
+                    .select()
+                    .single();
+
+                if (errorReserva) throw errorReserva;
+                log(resultId, `✅ Reserva creada (ID: ${reserva.id})`, 'success');
+
+                // Paso 4: Actualizar mesa a Reservada
+                log(resultId, '4️⃣ Actualizando estado de mesa a Reservada...', 'info');
+                await client.from('mesas').update({ estado: 'Reservada' }).eq('id', mesa.id);
+                log(resultId, `✅ Mesa ${mesa.nombre} ahora está RESERVADA`, 'success');
+
+                // Paso 5: Verificar reserva en BD
+                log(resultId, '5️⃣ Verificando reserva en base de datos...', 'info');
+                const { data: reservaVerif } = await client
+                    .from('reservas')
+                    .select('*, mesa:mesas(nombre), cliente:clientes(nombre, telefono)')
+                    .eq('id', reserva.id)
+                    .single();
+                log(resultId, `✅ Reserva verificada: Mesa ${reservaVerif.mesa.nombre} - Cliente ${reservaVerif.cliente.nombre}`, 'success');
+
+                // Paso 6: Marcar llegada (crear visita)
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                log(resultId, '6️⃣ Simulando llegada del cliente (marcar llegada)...', 'info');
+
+                const { data: visita, error: errorVisita } = await client
+                    .from('visitas')
+                    .insert({
+                        mesa_id: mesa.id,
+                        cliente_id: cliente.id,
+                        hora_llegada: new Date().toISOString(),
+                        numero_personas: 4
+                    })
+                    .select()
+                    .single();
+
+                if (errorVisita) throw errorVisita;
+                log(resultId, `✅ Visita creada (ID: ${visita.id})`, 'success');
+
+                // Paso 7: Actualizar reserva a Completada
+                log(resultId, '7️⃣ Actualizando reserva a Completada...', 'info');
+                await client.from('reservas').update({ estado: 'Completada' }).eq('id', reserva.id);
+                log(resultId, '✅ Reserva marcada como Completada', 'success');
+
+                // Paso 8: Actualizar mesa a Ocupada
+                log(resultId, '8️⃣ Actualizando mesa a Ocupada...', 'info');
+                await client.from('mesas').update({ estado: 'Ocupada' }).eq('id', mesa.id);
+                log(resultId, `✅ Mesa ${mesa.nombre} ahora está OCUPADA`, 'success');
+
+                // Paso 9: Liberar mesa (checkout)
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                log(resultId, '9️⃣ Simulando checkout (liberando mesa)...', 'info');
+
+                await client
+                    .from('visitas')
+                    .update({
+                        hora_salida: new Date().toISOString(),
+                        consumo_total: 850.00
+                    })
+                    .eq('id', visita.id);
+
+                await client.from('mesas').update({ estado: 'Libre' }).eq('id', mesa.id);
+                log(resultId, `✅ Mesa ${mesa.nombre} liberada con consumo de $850.00`, 'success');
+
+                // Resumen final
+                log(resultId, '🎉 TEST COMPLETADO EXITOSAMENTE', 'success');
+                log(resultId, `📊 Resumen: Reserva → Llegada → Visita → Checkout`, 'info');
+
+            } catch (error) {
+                log(resultId, `❌ ERROR: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        // TEST 2: Cancelación de Reserva
+        async function testCancelacionReserva() {
+            const resultId = 'resultado-test2';
+            document.getElementById(resultId).innerHTML = '<p class="info">⏳ Ejecutando test...</p>';
+
+            try {
+                log(resultId, '1️⃣ Buscando mesa libre...', 'info');
+                const { data: mesas } = await client.from('mesas').select('*').eq('estado', 'Libre').limit(1);
+                const mesa = mesas[0];
+                log(resultId, `✅ Mesa: ${mesa.nombre}`, 'success');
+
+                log(resultId, '2️⃣ Creando cliente y reserva...', 'info');
+                const testTelefono = `555-CANCEL-${Date.now()}`;
+                const { data: cliente } = await client
+                    .from('clientes')
+                    .insert({ nombre: 'Cliente Cancelación', email: `${testTelefono}@test.local`, telefono: testTelefono })
+                    .select()
+                    .single();
+
+                const { data: reserva } = await client
+                    .from('reservas')
+                    .insert({
+                        mesa_id: mesa.id,
+                        cliente_id: cliente.id,
+                        fecha_hora: new Date(Date.now() + 3600000).toISOString(),
+                        numero_personas: 2,
+                        estado: 'Confirmada'
+                    })
+                    .select()
+                    .single();
+
+                await client.from('mesas').update({ estado: 'Reservada' }).eq('id', mesa.id);
+                log(resultId, `✅ Reserva creada y mesa reservada`, 'success');
+
+                log(resultId, '3️⃣ Cancelando reserva...', 'info');
+                await client.from('reservas').update({ estado: 'Cancelada' }).eq('id', reserva.id);
+                await client.from('mesas').update({ estado: 'Libre' }).eq('id', mesa.id);
+                log(resultId, `✅ Reserva cancelada y mesa liberada`, 'success');
+
+                log(resultId, '🎉 TEST COMPLETADO: Reserva cancelada correctamente', 'success');
+
+            } catch (error) {
+                log(resultId, `❌ ERROR: ${error.message}`, 'error');
+            }
+        }
+
+        // TEST 3: Check-in Directo
+        async function testCheckInDirecto() {
+            const resultId = 'resultado-test3';
+            document.getElementById(resultId).innerHTML = '<p class="info">⏳ Ejecutando test...</p>';
+
+            try {
+                log(resultId, '1️⃣ Simulando check-in directo (sin reserva)...', 'info');
+                const { data: mesas } = await client.from('mesas').select('*').eq('estado', 'Libre').limit(1);
+                const mesa = mesas[0];
+                log(resultId, `✅ Mesa: ${mesa.nombre}`, 'success');
+
+                log(resultId, '2️⃣ Creando cliente walk-in...', 'info');
+                const testTelefono = `555-WALKIN-${Date.now()}`;
+                const { data: cliente } = await client
+                    .from('clientes')
+                    .insert({ nombre: 'Cliente Walk-In', email: `${testTelefono}@test.local`, telefono: testTelefono })
+                    .select()
+                    .single();
+                log(resultId, `✅ Cliente creado`, 'success');
+
+                log(resultId, '3️⃣ Creando visita directa...', 'info');
+                const { data: visita } = await client
+                    .from('visitas')
+                    .insert({
+                        mesa_id: mesa.id,
+                        cliente_id: cliente.id,
+                        hora_llegada: new Date().toISOString(),
+                        numero_personas: 3
+                    })
+                    .select()
+                    .single();
+                await client.from('mesas').update({ estado: 'Ocupada' }).eq('id', mesa.id);
+                log(resultId, `✅ Visita creada y mesa ocupada`, 'success');
+
+                log(resultId, '4️⃣ Liberando mesa...', 'info');
+                await client
+                    .from('visitas')
+                    .update({ hora_salida: new Date().toISOString(), consumo_total: 450.00 })
+                    .eq('id', visita.id);
+                await client.from('mesas').update({ estado: 'Libre' }).eq('id', mesa.id);
+                log(resultId, `✅ Mesa liberada con consumo de $450.00`, 'success');
+
+                log(resultId, '🎉 TEST COMPLETADO: Check-in directo exitoso', 'success');
+
+            } catch (error) {
+                log(resultId, `❌ ERROR: ${error.message}`, 'error');
+            }
+        }
+
+        // TEST 4: Múltiples Reservas
+        async function testMultiplesReservas() {
+            const resultId = 'resultado-test4';
+            document.getElementById(resultId).innerHTML = '<p class="info">⏳ Ejecutando test...</p>';
+
+            try {
+                log(resultId, '1️⃣ Creando 3 clientes diferentes...', 'info');
+                const clientes = [];
+                for (let i = 1; i <= 3; i++) {
+                    const testTelefono = `555-MULTI${i}-${Date.now()}`;
+                    const { data: cliente } = await client
+                        .from('clientes')
+                        .insert({
+                            nombre: `Cliente Multi ${i}`,
+                            email: `${testTelefono}@test.local`,
+                            telefono: testTelefono
+                        })
+                        .select()
+                        .single();
+                    clientes.push(cliente);
+                    log(resultId, `✅ Cliente ${i}: ${cliente.nombre} (${cliente.telefono})`, 'success');
+                }
+
+                log(resultId, '2️⃣ Creando 3 reservas en mesas diferentes...', 'info');
+                const { data: mesas } = await client.from('mesas').select('*').eq('estado', 'Libre').limit(3);
+
+                for (let i = 0; i < 3; i++) {
+                    const { data: reserva } = await client
+                        .from('reservas')
+                        .insert({
+                            mesa_id: mesas[i].id,
+                            cliente_id: clientes[i].id,
+                            fecha_hora: new Date(Date.now() + (i + 1) * 3600000).toISOString(),
+                            numero_personas: i + 2,
+                            estado: 'Confirmada'
+                        })
+                        .select()
+                        .single();
+
+                    await client.from('mesas').update({ estado: 'Reservada' }).eq('id', mesas[i].id);
+                    log(resultId, `✅ Reserva ${i + 1}: Mesa ${mesas[i].nombre} - ${clientes[i].nombre}`, 'success');
+                }
+
+                log(resultId, '3️⃣ Verificando que cada reserva tiene cliente diferente...', 'info');
+                const { data: reservasVerif } = await client
+                    .from('reservas')
+                    .select('*, cliente:clientes(nombre, telefono)')
+                    .in('id', clientes.map(c => c.id))
+                    .eq('estado', 'Confirmada');
+
+                const telefonos = new Set();
+                reservasVerif.forEach(r => {
+                    if (r.cliente && r.cliente.telefono) {
+                        telefonos.add(r.cliente.telefono);
+                    }
+                });
+
+                if (telefonos.size === 3) {
+                    log(resultId, `✅ Verificación exitosa: 3 clientes únicos con teléfonos diferentes`, 'success');
+                } else {
+                    log(resultId, `⚠️ ADVERTENCIA: Se encontraron ${telefonos.size} teléfonos únicos (esperados: 3)`, 'warning');
+                }
+
+                log(resultId, '🎉 TEST COMPLETADO: Múltiples reservas con clientes diferentes', 'success');
+
+            } catch (error) {
+                log(resultId, `❌ ERROR: ${error.message}`, 'error');
+            }
+        }
+
+        // TEST 5: Sincronización
+        async function testSincronizacion() {
+            const resultId = 'resultado-test5';
+            document.getElementById(resultId).innerHTML = '<p class="info">⏳ Ejecutando test...</p>';
+
+            try {
+                log(resultId, '1️⃣ Verificando reservas confirmadas...', 'info');
+                const ahora = new Date();
+                const inicioDeHoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()).toISOString();
+
+                const { data: reservas } = await client
+                    .from('reservas')
+                    .select('*, mesa:mesas(nombre), cliente:clientes(nombre, email, telefono)')
+                    .eq('estado', 'Confirmada')
+                    .gte('fecha_hora', inicioDeHoy);
+
+                log(resultId, `✅ Reservas confirmadas desde hoy: ${reservas?.length || 0}`, 'success');
+
+                if (reservas && reservas.length > 0) {
+                    log(resultId, '2️⃣ Verificando integridad de datos...', 'info');
+                    let errores = 0;
+                    reservas.forEach((r, i) => {
+                        if (!r.mesa || !r.cliente) {
+                            log(resultId, `⚠️ Reserva ${i + 1}: Falta JOIN con mesa o cliente`, 'warning');
+                            errores++;
+                        } else {
+                            log(resultId, `✅ Reserva ${i + 1}: Mesa ${r.mesa.nombre} - ${r.cliente.nombre} - ${r.cliente.telefono}`, 'success');
+                        }
+                    });
+
+                    if (errores === 0) {
+                        log(resultId, '✅ Todas las reservas tienen datos completos', 'success');
+                    } else {
+                        log(resultId, `⚠️ Se encontraron ${errores} reservas con datos incompletos`, 'warning');
+                    }
+                }
+
+                log(resultId, '3️⃣ Verificando mesas reservadas...', 'info');
+                const { data: mesasReservadas } = await client
+                    .from('mesas')
+                    .select('*')
+                    .eq('estado', 'Reservada');
+                log(resultId, `✅ Mesas en estado Reservada: ${mesasReservadas?.length || 0}`, 'success');
+
+                log(resultId, '🎉 TEST COMPLETADO: Sincronización verificada', 'success');
+
+            } catch (error) {
+                log(resultId, `❌ ERROR: ${error.message}`, 'error');
+            }
+        }
+
+        // Estado del Sistema
+        async function mostrarEstadoSistema() {
+            const resultId = 'estado-sistema';
+            document.getElementById(resultId).innerHTML = '<p class="info">⏳ Obteniendo estado...</p>';
+
+            try {
+                const { data: mesas } = await client.from('mesas').select('*');
+                const { data: clientes } = await client.from('clientes').select('*');
+                const { data: reservas } = await client.from('reservas').select('*').eq('estado', 'Confirmada');
+                const { data: visitas } = await client.from('visitas').select('*').is('hora_salida', null);
+
+                const mesasLibres = mesas.filter(m => m.estado === 'Libre').length;
+                const mesasOcupadas = mesas.filter(m => m.estado === 'Ocupada').length;
+                const mesasReservadas = mesas.filter(m => m.estado === 'Reservada').length;
+
+                const html = `
+                    <div class="test-result">
+                        <h3>📊 Estado Actual del Sistema</h3>
+                        <p><strong>Total de Mesas:</strong> ${mesas.length}</p>
+                        <p style="color: #10b981;">🟢 Libres: ${mesasLibres}</p>
+                        <p style="color: #ef4444;">🔴 Ocupadas: ${mesasOcupadas}</p>
+                        <p style="color: #3b82f6;">🔵 Reservadas: ${mesasReservadas}</p>
+                        <hr>
+                        <p><strong>Total de Clientes:</strong> ${clientes.length}</p>
+                        <p><strong>Reservas Confirmadas:</strong> ${reservas.length}</p>
+                        <p><strong>Visitas Activas:</strong> ${visitas.length}</p>
+                    </div>
+                `;
+                document.getElementById(resultId).innerHTML = html;
+
+            } catch (error) {
+                log(resultId, `❌ ERROR: ${error.message}`, 'error');
+            }
+        }
+
+        async function ejecutarTodosLosTests() {
+            if (!confirm('⏳ Esto ejecutará todos los tests secuencialmente. Puede tardar ~30 segundos. ¿Continuar?')) return;
+
+            limpiarResultados();
+            await testFlujoReservaCompleto();
+            await new Promise(r => setTimeout(r, 2000));
+            await testCancelacionReserva();
+            await new Promise(r => setTimeout(r, 2000));
+            await testCheckInDirecto();
+            await new Promise(r => setTimeout(r, 2000));
+            await testMultiplesReservas();
+            await new Promise(r => setTimeout(r, 2000));
+            await testSincronizacion();
+            await new Promise(r => setTimeout(r, 1000));
+            await mostrarEstadoSistema();
+
+            alert('✅ Todos los tests completados. Revisa los resultados arriba.');
+        }
+
+        // Auto-cargar estado al iniciar
+        window.onload = () => {
+            mostrarEstadoSistema();
+        };
+    </script>
+</body>
+</html>

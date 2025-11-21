@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Session Creation - Simple</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        button { margin: 5px; padding: 10px; }
+        pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+        .log-entry { margin: 5px 0; padding: 5px; border-left: 3px solid #ccc; }
+        .log-success { border-left-color: green; background: #f0fff0; }
+        .log-error { border-left-color: red; background: #fff0f0; }
+    </style>
+</head>
+<body>
+    <h1>Test Session Creation - Manual Validation</h1>
+    
+    <div class="test-section">
+        <h2>1. Manual Session Test</h2>
+        <button onclick="createManualSession()">Create Manual Session</button>
+        <div id="manual-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Check Current Session</h2>
+        <button onclick="checkCurrentSession()">Check Current Session</button>
+        <div id="current-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Clear Session Data</h2>
+        <button onclick="clearSessionData()">Clear Session Data</button>
+        <div id="clear-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Console Log</h2>
+        <div id="console-log"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const consoleDiv = document.getElementById('console-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleDiv.appendChild(entry);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        function createManualSession() {
+            const resultDiv = document.getElementById('manual-result');
+            
+            try {
+                log('Creating manual session...', 'info');
+                
+                // Simulate the session creation logic from createClientSession
+                const sessionData = {
+                    user: { email: 'test@example.com', telefono: '1234567890' },
+                    access_token: `client_${Date.now()}`,
+                    refresh_token: `refresh_${Date.now()}`,
+                    expires_at: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+                };
+                
+                // Store session in localStorage (simulating the API function)
+                localStorage.setItem('expendio_session', JSON.stringify(sessionData));
+                localStorage.setItem('expendio_user_email', 'test@example.com');
+                localStorage.setItem('expendio_user_phone', '1234567890');
+                
+                resultDiv.innerHTML = `
+                    <div class="success">✅ Manual session created successfully!</div>
+                    <pre>${JSON.stringify(sessionData, null, 2)}</pre>
+                `;
+                
+                log('Manual session created successfully', 'success');
+                log(`Session stored for: ${sessionData.user.email}`, 'success');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                log(`Error creating manual session: ${error.message}`, 'error');
+            }
+        }
+        
+        function checkCurrentSession() {
+            const resultDiv = document.getElementById('current-result');
+            
+            try {
+                log('Checking current session...', 'info');
+                
+                const session = localStorage.getItem('expendio_session');
+                const email = localStorage.getItem('expendio_user_email');
+                const phone = localStorage.getItem('expendio_user_phone');
+                
+                if (session) {
+                    try {
+                        const sessionData = JSON.parse(session);
+                        resultDiv.innerHTML = `
+                            <div class="success">✅ Active session found!</div>
+                            <p><strong>Email:</strong> ${email || 'Not set'}</p>
+                            <p><strong>Phone:</strong> ${phone || 'Not set'}</p>
+                            <p><strong>Access Token:</strong> ${sessionData.access_token?.substring(0, 20)}...</p>
+                            <p><strong>Expires:</strong> ${new Date(sessionData.expires_at * 1000).toLocaleString()}</p>
+                        `;
+                        
+                        // Check if session is expired
+                        const now = Math.floor(Date.now() / 1000);
+                        if (sessionData.expires_at > now) {
+                            log(`Session is valid (expires in ${Math.floor((sessionData.expires_at - now) / 60)} minutes)`, 'success');
+                        } else {
+                            log('Session has expired!', 'error');
+                        }
+                        
+                    } catch (e) {
+                        resultDiv.innerHTML = `<div class="error">❌ Invalid session data</div>`;
+                        log('Invalid session data format', 'error');
+                    }
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ No active session found</div>`;
+                    log('No session found in localStorage', 'error');
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error checking session: ${error.message}</div>`;
+                log(`Error checking session: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearSessionData() {
+            const resultDiv = document.getElementById('clear-result');
+            
+            try {
+                log('Clearing session data...', 'info');
+                
+                localStorage.removeItem('expendio_session');
+                localStorage.removeItem('expendio_user_email');
+                localStorage.removeItem('expendio_user_phone');
+                
+                resultDiv.innerHTML = '<div class="success">✅ Session data cleared!</div>';
+                log('All session data cleared from localStorage', 'success');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error clearing data: ${error.message}</div>`;
+                log(`Error clearing session data: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-check session on page load
+        window.onload = function() {
+            log('Page loaded, checking for existing session...', 'info');
+            checkCurrentSession();
+        };
+    </script>
+</body>
+</html>

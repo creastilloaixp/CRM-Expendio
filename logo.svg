@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#2A9D8F"/>
+  <text x="256" y="200" font-family="Arial Black, sans-serif" font-size="120" fill="#F4F1DE" text-anchor="middle" font-weight="bold">E</text>
+  <text x="256" y="340" font-family="Arial, sans-serif" font-size="48" fill="#F4F1DE" text-anchor="middle">EXPENDIO</text>
+  <text x="256" y="400" font-family="Arial, sans-serif" font-size="28" fill="#F4F1DE" text-anchor="middle" opacity="0.8">Cervecería</text>
+</svg>

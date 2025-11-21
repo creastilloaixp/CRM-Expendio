@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Reservas</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Test de Reservas</h1>
+    <button onclick="testReservas()">Cargar Reservas</button>
+    <div id="resultado"></div>
+
+    <script>
+        const supabaseUrl = 'https://fdinliimdxkkgyqvadvq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaW5saWltZHhra2d5cXZhZHZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5ODU2OTEsImV4cCI6MjA3ODU2MTY5MX0.DTGFOkW-yApktMevqgMwvp9TbVjxf2chEGg4rkMeXfQ';
+
+        const { createClient } = supabase;
+        const client = createClient(supabaseUrl, supabaseKey);
+
+        async function testReservas() {
+            const resultado = document.getElementById('resultado');
+            resultado.innerHTML = '<p>Cargando...</p>';
+
+            try {
+                // Test 1: Todas las reservas
+                const { data: todasReservas, error: errorTodas } = await client
+                    .from('reservas')
+                    .select('*');
+
+                console.log('Todas las reservas:', todasReservas);
+                console.log('Error:', errorTodas);
+
+                // Test 2: Reservas confirmadas
+                const { data: confirmadas, error: errorConfirmadas } = await client
+                    .from('reservas')
+                    .select('*, mesa:mesas(nombre), cliente:clientes(nombre, email)')
+                    .eq('estado', 'Confirmada');
+
+                console.log('Confirmadas:', confirmadas);
+                console.log('Error confirmadas:', errorConfirmadas);
+
+                // Test 3: Reservas futuras
+                const ahora = new Date().toISOString();
+                const { data: futuras, error: errorFuturas } = await client
+                    .from('reservas')
+                    .select('*, mesa:mesas(nombre), cliente:clientes(nombre, email)')
+                    .eq('estado', 'Confirmada')
+                    .gt('fecha_hora', ahora);
+
+                console.log('Futuras:', futuras);
+                console.log('Error futuras:', errorFuturas);
+                console.log('Fecha actual:', ahora);
+
+                let html = '<h2>Resultados:</h2>';
+                html += '<h3>1. Todas las reservas (' + (todasReservas?.length || 0) + '):</h3>';
+                html += '<pre>' + JSON.stringify(todasReservas, null, 2) + '</pre>';
+
+                html += '<h3>2. Reservas Confirmadas (' + (confirmadas?.length || 0) + '):</h3>';
+                html += '<pre>' + JSON.stringify(confirmadas, null, 2) + '</pre>';
+
+                html += '<h3>3. Reservas Futuras (' + (futuras?.length || 0) + '):</h3>';
+                html += '<pre>' + JSON.stringify(futuras, null, 2) + '</pre>';
+
+                resultado.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultado.innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

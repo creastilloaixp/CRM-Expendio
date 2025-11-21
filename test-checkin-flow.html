@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Check-in Flow with Session</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        button { margin: 5px; padding: 10px; }
+        pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test Check-in Flow with Session Creation</h1>
+    
+    <div class="test-section">
+        <h2>1. Test Session Creation (API)</h2>
+        <button onclick="testCreateSession()">Test createClientSession API</button>
+        <div id="api-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Test LocalStorage Session</h2>
+        <button onclick="testLocalStorage()">Check LocalStorage Session</button>
+        <div id="storage-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Clear Test Data</h2>
+        <button onclick="clearTestData()">Clear All Test Data</button>
+        <div id="clear-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Console Log</h2>
+        <div id="console-log"></div>
+    </div>
+
+    <script type="module">
+        // Import the API function
+        import { createClientSession } from './services/api.js';
+        
+        window.testCreateSession = async function() {
+            const resultDiv = document.getElementById('api-result');
+            const consoleDiv = document.getElementById('console-log');
+            
+            try {
+                consoleDiv.innerHTML += '<p>Testing createClientSession...</p>';
+                
+                // Test the session creation
+                const { data, error } = await createClientSession('test@example.com', '1234567890');
+                
+                if (error) {
+                    resultDiv.innerHTML = `<div class="error">❌ Error: ${error}</div>`;
+                    consoleDiv.innerHTML += `<p class="error">Error: ${error}</p>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="success">✅ Session created successfully!</div>`;
+                    consoleDiv.innerHTML += `<p class="success">Session data: ${JSON.stringify(data, null, 2)}</p>`;
+                    
+                    // Check localStorage
+                    const storedSession = localStorage.getItem('expendio_session');
+                    consoleDiv.innerHTML += `<p>Stored session: ${storedSession}</p>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="error">❌ Exception: ${err.message}</div>`;
+                consoleDiv.innerHTML += `<p class="error">Exception: ${err.message}</p>`;
+            }
+        };
+        
+        window.testLocalStorage = function() {
+            const resultDiv = document.getElementById('storage-result');
+            const consoleDiv = document.getElementById('console-log');
+            
+            const session = localStorage.getItem('expendio_session');
+            const email = localStorage.getItem('expendio_user_email');
+            const phone = localStorage.getItem('expendio_user_phone');
+            
+            consoleDiv.innerHTML += '<p>Checking localStorage...</p>';
+            
+            if (session) {
+                try {
+                    const sessionData = JSON.parse(session);
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Session found in localStorage!</div>
+                        <pre>${JSON.stringify(sessionData, null, 2)}</pre>
+                    `;
+                    consoleDiv.innerHTML += `<p class="success">Found session for: ${sessionData.user?.email}</p>`;
+                } catch (e) {
+                    resultDiv.innerHTML = `<div class="error">❌ Invalid session data: ${e.message}</div>`;
+                    consoleDiv.innerHTML += `<p class="error">Invalid session data</p>`;
+                }
+            } else {
+                resultDiv.innerHTML = `<div class="error">❌ No session found in localStorage</div>`;
+                consoleDiv.innerHTML += `<p class="error">No session found</p>`;
+            }
+            
+            resultDiv.innerHTML += `
+                <p><strong>Email:</strong> ${email || 'Not found'}</p>
+                <p><strong>Phone:</strong> ${phone || 'Not found'}</p>
+            `;
+        };
+        
+        window.clearTestData = function() {
+            const resultDiv = document.getElementById('clear-result');
+            const consoleDiv = document.getElementById('console-log');
+            
+            localStorage.removeItem('expendio_session');
+            localStorage.removeItem('expendio_user_email');
+            localStorage.removeItem('expendio_user_phone');
+            
+            resultDiv.innerHTML = '<div class="success">✅ Test data cleared!</div>';
+            consoleDiv.innerHTML += '<p class="success">Test data cleared</p>';
+        };
+    </script>
+</body>
+</html>

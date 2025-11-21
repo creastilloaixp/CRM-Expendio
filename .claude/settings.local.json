@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(if [ -f \"services/api-temp.ts\" ])",
+      "Bash(then rm -f services/api-temp.ts)",
+      "Bash(else echo \"✓ api-temp.ts not found (already clean)\")",
+      "Bash(fi)",
+      "Bash(git add:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run build:clean:*)",
+      "Bash(supabase --version:*)",
+      "Bash(scoop bucket add:*)",
+      "Bash(scoop install:*)",
+      "Bash(cat:*)",
+      "Bash(git init:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,43 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+.vercel
+
+# Windows reserved names
+nul
+NUL
+
+# Binaries and large files
+*.exe
+*.tar.gz
+*.png
+*.webm
+
+# Test artifacts
+test-results/
+playwright-report/
+
+# Supabase temp
+supabase/.temp/

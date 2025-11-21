@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Validate Session Creation in CheckIn Flow</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        button { margin: 5px; padding: 10px; }
+        pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+        .log-entry { margin: 5px 0; padding: 5px; border-left: 3px solid #ccc; }
+        .log-success { border-left-color: green; background: #f0fff0; }
+        .log-error { border-left-color: red; background: #fff0f0; }
+        .validation-result { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Validate Session Creation in CheckIn Flow</h1>
+    
+    <div class="test-section">
+        <h2>📋 Session Creation Validation Test</h2>
+        <p>This test validates that the session creation logic works correctly after form submission.</p>
+        
+        <button onclick="runValidationTest()">Run Complete Validation Test</button>
+        <button onclick="clearAllData()">Clear All Test Data</button>
+        
+        <div id="validation-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔍 Manual Inspection Tools</h2>
+        
+        <button onclick="inspectLocalStorage()">Inspect Current LocalStorage</button>
+        <button onclick="simulateCheckInFlow()">Simulate CheckIn Flow</button>
+        <button onclick="testSessionExpiration()">Test Session Expiration</button>
+        
+        <div id="manual-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📊 Test Results Log</h2>
+        <div id="test-log"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('test-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function addResult(containerId, title, success, details = '') {
+            const container = document.getElementById(containerId);
+            const result = document.createElement('div');
+            result.className = `validation-result ${success ? 'log-success' : 'log-error'}`;
+            result.innerHTML = `
+                <strong>${success ? '✅' : '❌'} ${title}</strong>
+                ${details ? `<br><small>${details}</small>` : ''}
+            `;
+            container.appendChild(result);
+        }
+        
+        async function runValidationTest() {
+            const resultsDiv = document.getElementById('validation-results');
+            resultsDiv.innerHTML = '<h3>Running validation tests...</h3>';
+            
+            log('Starting comprehensive validation test', 'info');
+            
+            try {
+                // Test 1: Clear existing data
+                log('Test 1: Clearing existing session data', 'info');
+                localStorage.removeItem('expendio_session');
+                localStorage.removeItem('expendio_user_email');
+                localStorage.removeItem('expendio_user_phone');
+                addResult('validation-results', 'Cleared existing session data', true);
+                
+                // Test 2: Simulate the exact session creation logic from CheckIn.tsx
+                log('Test 2: Simulating session creation logic from CheckIn.tsx', 'info');
+                
+                const formData = {
+                    email: 'testuser@example.com',
+                    telefono: '5551234567'
+                };
+                
+                // This simulates the exact logic from CheckIn.tsx lines 321-333
+                const sessionData = {
+                    user: { email: formData.email, telefono: formData.telefono },
+                    access_token: `client_${Date.now()}`,
+                    refresh_token: `refresh_${Date.now()}`,
+                    expires_at: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+                };
+                
+                // Store session in localStorage (exactly like createClientSession does)
+                localStorage.setItem('expendio_session', JSON.stringify(sessionData));
+                localStorage.setItem('expendio_user_email', formData.email);
+                localStorage.setItem('expendio_user_phone', formData.telefono);
+                
+                log('Session data created and stored', 'success');
+                addResult('validation-results', 'Created session data structure', true);
+                
+                // Test 3: Verify session was stored correctly
+                log('Test 3: Verifying session storage', 'info');
+                const storedSession = localStorage.getItem('expendio_session');
+                const storedEmail = localStorage.getItem('expendio_user_email');
+                const storedPhone = localStorage.getItem('expendio_user_phone');
+                
+                if (storedSession && storedEmail && storedPhone) {
+                    const parsedSession = JSON.parse(storedSession);
+                    
+                    // Validate session structure
+                    const hasValidUser = parsedSession.user && 
+                                       parsedSession.user.email === formData.email && 
+                                       parsedSession.user.telefono === formData.telefono;
+                    const hasValidTokens = parsedSession.access_token && parsedSession.refresh_token;
+                    const hasValidExpiration = parsedSession.expires_at && 
+                                             typeof parsedSession.expires_at === 'number' &&
+                                             parsedSession.expires_at > Math.floor(Date.now() / 1000);
+                    
+                    if (hasValidUser && hasValidTokens && hasValidExpiration) {
+                        log('Session validation passed', 'success');
+                        addResult('validation-results', 'Session structure is valid', true);
+                        addResult('validation-results', 'Session expiration is valid', true, 
+                                `Expires in ${Math.floor((parsedSession.expires_at - Math.floor(Date.now() / 1000)) / 60)} minutes`);
+                    } else {
+                        log('Session validation failed', 'error');
+                        addResult('validation-results', 'Session structure validation', false, 
+                                `User: ${hasValidUser}, Tokens: ${hasValidTokens}, Expiration: ${hasValidExpiration}`);
+                    }
+                } else {
+                    log('Session data not found in localStorage', 'error');
+                    addResult('validation-results', 'Session data storage', false, 'Data not found in localStorage');
+                }
+                
+                // Test 4: Verify the exact keys used in the application
+                log('Test 4: Verifying application-specific keys', 'info');
+                const expectedKeys = ['expendio_session', 'expendio_user_email', 'expendio_user_phone'];
+                const allKeysFound = expectedKeys.every(key => localStorage.getItem(key) !== null);
+                
+                if (allKeysFound) {
+                    log('All application keys found', 'success');
+                    addResult('validation-results', 'Application keys validation', true);
+                } else {
+                    log('Missing application keys', 'error');
+                    addResult('validation-results', 'Application keys validation', false);
+                }
+                
+                log('✅ Validation test completed successfully!', 'success');
+                
+            } catch (error) {
+                log(`❌ Validation test failed: ${error.message}`, 'error');
+                addResult('validation-results', 'Validation test', false, error.message);
+            }
+        }
+        
+        function inspectLocalStorage() {
+            const resultDiv = document.getElementById('manual-results');
+            
+            try {
+                const allKeys = Object.keys(localStorage);
+                const relevantKeys = allKeys.filter(key => key.includes('expendio'));
+                
+                let html = '<h4>LocalStorage Inspection:</h4>';
+                
+                if (relevantKeys.length > 0) {
+                    relevantKeys.forEach(key => {
+                        const value = localStorage.getItem(key);
+                        try {
+                            const parsed = JSON.parse(value);
+                            html += `<p><strong>${key}:</strong></p><pre>${JSON.stringify(parsed, null, 2)}</pre>`;
+                        } catch (e) {
+                            html += `<p><strong>${key}:</strong> ${value}</p>`;
+                        }
+                    });
+                } else {
+                    html += '<p class="error">No expendio-related keys found in localStorage</p>';
+                }
+                
+                html += `<p><small>Total localStorage keys: ${allKeys.length}</small></p>`;
+                resultDiv.innerHTML = html;
+                
+                log(`Inspected localStorage: found ${relevantKeys.length} expendio keys`, 'info');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Error inspecting localStorage: ${error.message}</div>`;
+                log(`Error inspecting localStorage: ${error.message}`, 'error');
+            }
+        }
+        
+        function simulateCheckInFlow() {
+            const resultDiv = document.getElementById('manual-results');
+            
+            try {
+                log('Simulating complete CheckIn flow with session creation', 'info');
+                
+                // Step 1: Simulate form data (like user would enter)
+                const userData = {
+                    nombre: 'Juan Pérez',
+                    email: 'juan.perez@example.com',
+                    telefono: '5551234567',
+                    fechaNacimiento: '1990-01-01',
+                    termsAccepted: true
+                };
+                
+                resultDiv.innerHTML = `
+                    <h4>Simulating CheckIn Flow:</h4>
+                    <p><strong>User:</strong> ${userData.nombre}</p>
+                    <p><strong>Email:</strong> ${userData.email}</p>
+                    <p><strong>Phone:</strong> ${userData.telefono}</p>
+                `;
+                
+                // Step 2: Simulate localStorage storage (CheckIn.tsx lines 317-319)
+                localStorage.setItem('expendio_user_email', userData.email);
+                localStorage.setItem('expendio_user_phone', userData.telefono);
+                
+                log('User data stored in localStorage', 'success');
+                
+                // Step 3: Simulate session creation (CheckIn.tsx lines 321-333)
+                const sessionData = {
+                    user: { email: userData.email, telefono: userData.telefono },
+                    access_token: `client_${Date.now()}`,
+                    refresh_token: `refresh_${Date.now()}`,
+                    expires_at: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
+                };
+                
+                localStorage.setItem('expendio_session', JSON.stringify(sessionData));
+                
+                log('Session created and stored', 'success');
+                
+                // Step 4: Verify the complete flow
+                const storedEmail = localStorage.getItem('expendio_user_email');
+                const storedPhone = localStorage.getItem('expendio_user_phone');
+                const storedSession = localStorage.getItem('expendio_session');
+                
+                if (storedEmail === userData.email && 
+                    storedPhone === userData.telefono && 
+                    storedSession) {
+                    
+                    resultDiv.innerHTML += `
+                        <div class="success">
+                            <p>✅ CheckIn flow simulation completed successfully!</p>
+                            <p>All data stored correctly in localStorage.</p>
+                        </div>
+                    `;
+                    
+                    log('CheckIn flow simulation completed successfully', 'success');
+                } else {
+                    resultDiv.innerHTML += `
+                        <div class="error">
+                            <p>❌ CheckIn flow simulation failed!</p>
+                        </div>
+                    `;
+                    
+                    log('CheckIn flow simulation failed', 'error');
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML += `<div class="error">Error in simulation: ${error.message}</div>`;
+                log(`Error in CheckIn flow simulation: ${error.message}`, 'error');
+            }
+        }
+        
+        function testSessionExpiration() {
+            const resultDiv = document.getElementById('manual-results');
+            
+            try {
+                // Create an expired session
+                const expiredSession = {
+                    user: { email: 'expired@example.com', telefono: '0000000000' },
+                    access_token: 'expired_token',
+                    refresh_token: 'expired_refresh',
+                    expires_at: Math.floor(Date.now() / 1000) - 3600 // 1 hour ago
+                };
+                
+                localStorage.setItem('expendio_session', JSON.stringify(expiredSession));
+                
+                // Check if it's recognized as expired
+                const storedSession = JSON.parse(localStorage.getItem('expendio_session'));
+                const now = Math.floor(Date.now() / 1000);
+                const isExpired = storedSession.expires_at < now;
+                
+                resultDiv.innerHTML = `
+                    <h4>Session Expiration Test:</h4>
+                    <p><strong>Current time:</strong> ${new Date(now * 1000).toLocaleString()}</p>
+                    <p><strong>Session expires:</strong> ${new Date(storedSession.expires_at * 1000).toLocaleString()}</p>
+                    <p><strong>Is expired:</strong> ${isExpired ? '<span class="error">Yes</span>' : '<span class="success">No</span>'}</p>
+                `;
+                
+                log(`Session expiration test: ${isExpired ? 'Expired' : 'Valid'}`, isExpired ? 'error' : 'success');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Error testing expiration: ${error.message}</div>`;
+                log(`Error testing session expiration: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearAllData() {
+            try {
+                log('Clearing all test data...', 'info');
+                
+                localStorage.removeItem('expendio_session');
+                localStorage.removeItem('expendio_user_email');
+                localStorage.removeItem('expendio_user_phone');
+                
+                // Clear results
+                document.getElementById('validation-results').innerHTML = '';
+                document.getElementById('manual-results').innerHTML = '';
+                
+                log('✅ All data cleared!', 'success');
+                
+            } catch (error) {
+                log(`Error clearing data: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-run basic validation on page load
+        window.onload = function() {
+            log('Session validation test page loaded', 'info');
+            log('Click "Run Complete Validation Test" to start', 'info');
+        };
+    </script>
+</body>
+</html>

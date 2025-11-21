@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Reservas y Clientes</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #4CAF50; color: white; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Debug Reservas y Clientes</h1>
+    <button onclick="cargarDatos()">Cargar Datos</button>
+    <button onclick="limpiarReservas()">Limpiar Reservas</button>
+
+    <div id="resultado"></div>
+
+    <script>
+        const supabaseUrl = 'https://fdinliimdxkkgyqvadvq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkaW5saWltZHhra2d5cXZhZHZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5ODU2OTEsImV4cCI6MjA3ODU2MTY5MX0.DTGFOkW-yApktMevqgMwvp9TbVjxf2chEGg4rkMeXfQ';
+
+        const { createClient } = supabase;
+        const client = createClient(supabaseUrl, supabaseKey);
+
+        async function cargarDatos() {
+            const resultado = document.getElementById('resultado');
+            resultado.innerHTML = '<p>Cargando...</p>';
+
+            try {
+                // 1. Cargar todos los clientes
+                const { data: clientes, error: errorClientes } = await client
+                    .from('clientes')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                // 2. Cargar todas las reservas con JOIN
+                const { data: reservas, error: errorReservas } = await client
+                    .from('reservas')
+                    .select('*, mesa:mesas(nombre), cliente:clientes(nombre, telefono, email)')
+                    .order('created_at', { ascending: false });
+
+                let html = '';
+
+                // Mostrar clientes
+                html += '<h2>Clientes (' + (clientes?.length || 0) + ')</h2>';
+                html += '<table>';
+                html += '<tr><th>ID</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Created At</th></tr>';
+                clientes?.forEach(c => {
+                    html += '<tr>';
+                    html += '<td>' + c.id.substring(0, 8) + '...</td>';
+                    html += '<td>' + c.nombre + '</td>';
+                    html += '<td>' + c.telefono + '</td>';
+                    html += '<td>' + c.email + '</td>';
+                    html += '<td>' + new Date(c.created_at).toLocaleString() + '</td>';
+                    html += '</tr>';
+                });
+                html += '</table>';
+
+                // Mostrar reservas
+                html += '<h2>Reservas (' + (reservas?.length || 0) + ')</h2>';
+                html += '<table>';
+                html += '<tr><th>ID</th><th>Mesa</th><th>Cliente</th><th>Teléfono</th><th>Fecha/Hora Reserva</th><th>Estado</th><th>Created At</th></tr>';
+                reservas?.forEach(r => {
+                    html += '<tr>';
+                    html += '<td>' + r.id.substring(0, 8) + '...</td>';
+                    html += '<td>' + r.mesa?.nombre + '</td>';
+                    html += '<td>' + r.cliente?.nombre + '</td>';
+                    html += '<td>' + r.cliente?.telefono + '</td>';
+                    html += '<td>' + new Date(r.fecha_hora).toLocaleString() + '</td>';
+                    html += '<td>' + r.estado + '</td>';
+                    html += '<td>' + new Date(r.created_at).toLocaleString() + '</td>';
+                    html += '</tr>';
+                });
+                html += '</table>';
+
+                // Análisis
+                html += '<h2>Análisis</h2>';
+
+                // Contar reservas por cliente
+                const reservasPorCliente = {};
+                reservas?.forEach(r => {
+                    const clienteNombre = r.cliente?.nombre || 'Sin nombre';
+                    reservasPorCliente[clienteNombre] = (reservasPorCliente[clienteNombre] || 0) + 1;
+                });
+
+                html += '<h3>Reservas por Cliente:</h3>';
+                html += '<ul>';
+                for (const [nombre, count] of Object.entries(reservasPorCliente)) {
+                    html += '<li><strong>' + nombre + ':</strong> ' + count + ' reservas</li>';
+                }
+                html += '</ul>';
+
+                resultado.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultado.innerHTML = '<p class="error">Error: ' + error.message + '</p>';
+            }
+        }
+
+        async function limpiarReservas() {
+            if (!confirm('¿Estás seguro de que quieres eliminar TODAS las reservas y liberar las mesas? Esto NO eliminará los clientes.')) {
+                return;
+            }
+
+            try {
+                // 1. Cambiar todas las reservas a Cancelada
+                await client
+                    .from('reservas')
+                    .update({ estado: 'Cancelada' })
+                    .neq('estado', 'Completada');
+
+                // 2. Liberar todas las mesas reservadas
+                await client
+                    .from('mesas')
+                    .update({ estado: 'Libre' })
+                    .eq('estado', 'Reservada');
+
+                alert('✅ Reservas limpiadas y mesas liberadas');
+                cargarDatos();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        // Cargar datos automáticamente al inicio
+        cargarDatos();
+    </script>
+</body>
+</html>
