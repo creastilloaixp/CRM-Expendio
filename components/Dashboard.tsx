@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getMesas, getActiveVisitaByMesaId, getActiveReservaByMesaId, releaseTable, createReservation, obtenerNotificacionesPendientes, marcarNotificacionAtendida, getUpcomingReservations } from '../services/api';
+import { getMesas, getActiveVisitaByMesaId, getActiveReservaByMesaId, releaseTable, createReservation, obtenerNotificacionesPendientes, marcarNotificacionAtendida, getUpcomingReservations, cancelReservation, markReservationAsArrived } from '../services/api';
 import { supabase } from '../services/supabaseClient';
 import { NotificationService } from '../services/notificationService';
 import type { Mesa, Visita, Reserva, NewReserva, Notificacion } from '../types';
@@ -217,6 +217,32 @@ const Dashboard: React.FC = () => {
     fetchMesas();
   };
 
+  const handleCancelReservation = async (reservaId: string) => {
+    console.log('❌ Dashboard: Cancelando reserva:', reservaId);
+    const result = await cancelReservation(reservaId);
+    if (result.error) {
+      console.error('Error canceling reservation:', result.error);
+      alert('Error al cancelar la reserva');
+      return;
+    }
+    console.log('✅ Reserva cancelada');
+    fetchMesas();
+    fetchReservas();
+  };
+
+  const handleConfirmArrival = async (reservaId: string) => {
+    console.log('✅ Dashboard: Confirmando llegada para reserva:', reservaId);
+    const result = await markReservationAsArrived(reservaId);
+    if (result.error) {
+      console.error('Error confirming arrival:', result.error);
+      alert('Error al confirmar llegada');
+      return;
+    }
+    console.log('✅ Visita iniciada desde reserva');
+    fetchMesas();
+    fetchReservas();
+  };
+
   const handleOpenQR = () => {
     setIsQRModalOpen(true);
   };
@@ -335,15 +361,16 @@ const Dashboard: React.FC = () => {
           ))}
         </div>
 
-        {selectedMesa && (
+        {selectedMesa && isModalOpen && (
           <TableModal
-            isOpen={isModalOpen}
             onClose={handleCloseModal}
             mesa={selectedMesa}
             visita={currentVisita}
             reserva={currentReserva}
             onRelease={handleReleaseTable}
             onCreateReservation={handleCreateReservation}
+            onCancelReservation={handleCancelReservation}
+            onConfirmArrival={handleConfirmArrival}
           />
         )}
 

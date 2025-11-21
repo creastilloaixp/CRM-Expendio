@@ -29,16 +29,24 @@
   - Listener de cambios de auth
   - Logout correcto
 
+### Funcionalidades IA (Completadas - commit: 3efca55)
+- [x] Asistente administrativo IA (consultas en lenguaje natural)
+- [x] Business Insights (análisis automático de tendencias)
+- [x] Segmentación de clientes (VIP, frecuente, en riesgo, etc.)
+- [x] Inventario predictivo (alertas de stock)
+- [x] Recomendaciones de productos personalizadas
+- [x] Dashboard unificado de IA (`/ai-dashboard`)
+
 ### Funcionalidades Pendientes
 - [ ] Notificaciones push (PWA)
 - [ ] Integración de pagos (Stripe/MercadoPago)
-- [ ] Módulo de inventario/stock
 - [ ] Exportar reportes a PDF/Excel
 
 ### Mejoras Técnicas
 - [ ] TypeScript estricto
 - [ ] SEO y meta tags
 - [ ] Optimización de bundle
+- [ ] Arreglar tests de Playwright
 
 ## Decisiones Técnicas
 - Lazy loading en todos los componentes principales

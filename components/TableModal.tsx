@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import type { Mesa, Visita, Reserva, NewReserva } from '../types';
+import React, { useState, useEffect } from 'react';
+import type { Mesa, Visita, Reserva, NewReserva, Pedido } from '../types';
 import { TableStatus } from '../types';
 import { Button } from './common/Button';
 import { Input } from './common/Input';
+import { obtenerPedidosVisita, calcularTotalPedidos } from '../services/api';
 
 interface ReservationFormProps {
     mesaId: string;
@@ -66,11 +67,36 @@ interface TableModalProps {
   onClose: () => void;
   onRelease: (visitaId: string, consumo: number) => Promise<void>;
   onCreateReservation: (data: NewReserva) => Promise<void>;
+  onCancelReservation?: (reservaId: string) => Promise<void>;
+  onConfirmArrival?: (reservaId: string) => Promise<void>;
 }
 
-const TableModal: React.FC<TableModalProps> = ({ mesa, visita, reserva, onClose, onRelease, onCreateReservation }) => {
+const TableModal: React.FC<TableModalProps> = ({ mesa, visita, reserva, onClose, onRelease, onCreateReservation, onCancelReservation, onConfirmArrival }) => {
   const [consumo, setConsumo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pedidos, setPedidos] = useState<any[]>([]);
+  const [totalPedidos, setTotalPedidos] = useState<number>(0);
+  const [loadingPedidos, setLoadingPedidos] = useState(false);
+
+  // Cargar pedidos cuando hay una visita activa
+  useEffect(() => {
+    const fetchPedidos = async () => {
+      if (visita?.id) {
+        setLoadingPedidos(true);
+        const [pedidosRes, totalRes] = await Promise.all([
+          obtenerPedidosVisita(visita.id),
+          calcularTotalPedidos(visita.id)
+        ]);
+        if (pedidosRes.data) setPedidos(pedidosRes.data);
+        if (totalRes.data) {
+          setTotalPedidos(totalRes.data);
+          setConsumo(totalRes.data.toString());
+        }
+        setLoadingPedidos(false);
+      }
+    };
+    fetchPedidos();
+  }, [visita?.id]);
 
   const handleRelease = async () => {
       if(visita && consumo) {
@@ -79,11 +105,31 @@ const TableModal: React.FC<TableModalProps> = ({ mesa, visita, reserva, onClose,
           setIsSubmitting(false);
       }
   }
-  
+
   const handleCreateReservation = async (data: NewReserva) => {
     setIsSubmitting(true);
     await onCreateReservation(data);
     setIsSubmitting(false);
+  }
+
+  const handleCancelReservation = async () => {
+    if (reserva && onCancelReservation) {
+      if (window.confirm('¿Estás seguro de cancelar esta reserva?')) {
+        setIsSubmitting(true);
+        await onCancelReservation(reserva.id);
+        setIsSubmitting(false);
+        onClose();
+      }
+    }
+  }
+
+  const handleConfirmArrival = async () => {
+    if (reserva && onConfirmArrival) {
+      setIsSubmitting(true);
+      await onConfirmArrival(reserva.id);
+      setIsSubmitting(false);
+      onClose();
+    }
   }
 
   const formatDateTime = (isoString?: string) => {
@@ -106,8 +152,8 @@ const TableModal: React.FC<TableModalProps> = ({ mesa, visita, reserva, onClose,
                 <div className="space-y-4">
                   <div>
                     <h4 className="font-semibold text-gray-500 text-sm">Cliente</h4>
-                    <p className="text-xl">{visita.cliente?.nombre}</p>
-                    <p className="text-sm text-gray-500">{visita.cliente?.email}</p>
+                    <p className="text-xl">{visita.cliente?.nombre || 'Cliente sin registro'}</p>
+                    <p className="text-sm text-gray-500">{visita.cliente?.email || ''}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div>
@@ -119,8 +165,34 @@ const TableModal: React.FC<TableModalProps> = ({ mesa, visita, reserva, onClose,
                         <p className="text-xl">{formatTime(visita.hora_llegada)}</p>
                      </div>
                   </div>
+
+                  {/* Pedidos activos */}
+                  {loadingPedidos ? (
+                    <div className="text-center py-2 text-gray-500">Cargando pedidos...</div>
+                  ) : pedidos.length > 0 ? (
+                    <div className="pt-4 border-t">
+                      <h4 className="font-semibold text-gray-500 text-sm mb-2">Pedidos ({pedidos.length})</h4>
+                      <div className="max-h-32 overflow-y-auto space-y-1">
+                        {pedidos.map((p: any, idx: number) => (
+                          <div key={idx} className="flex justify-between text-sm bg-gray-50 px-2 py-1 rounded">
+                            <span>{p.cantidad}x {p.producto_nombre || p.producto?.nombre || 'Producto'}</span>
+                            <span className="font-medium">${(p.precio_unitario * p.cantidad).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-between font-bold mt-2 pt-2 border-t">
+                        <span>Total:</span>
+                        <span className="text-expendio-primary">${totalPedidos.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pt-4 border-t text-center text-gray-400 text-sm">
+                      Sin pedidos registrados
+                    </div>
+                  )}
+
                   <div className="pt-4 border-t">
-                     <Input 
+                     <Input
                         id="consumo"
                         label="Consumo Total ($)"
                         type="number"
@@ -155,6 +227,29 @@ const TableModal: React.FC<TableModalProps> = ({ mesa, visita, reserva, onClose,
                      <div>
                         <h4 className="font-semibold text-gray-500 text-sm">Personas</h4>
                         <p className="text-xl">{reserva.numero_personas}</p>
+                    </div>
+
+                    {/* Botones de acción */}
+                    <div className="pt-4 border-t space-y-2">
+                      {onConfirmArrival && (
+                        <Button
+                          onClick={handleConfirmArrival}
+                          fullWidth
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? 'Procesando...' : '✅ Cliente Llegó - Iniciar Visita'}
+                        </Button>
+                      )}
+                      {onCancelReservation && (
+                        <Button
+                          onClick={handleCancelReservation}
+                          fullWidth
+                          disabled={isSubmitting}
+                          className="bg-gray-400 hover:bg-gray-500"
+                        >
+                          {isSubmitting ? 'Cancelando...' : '❌ Cancelar Reserva'}
+                        </Button>
+                      )}
                     </div>
                  </div>
             );
