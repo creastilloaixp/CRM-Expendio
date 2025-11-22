@@ -1,5 +1,5 @@
 /**
- * Vercel Serverless Function para enviar mensajes de WhatsApp vía Meta Cloud API
+ * Vercel Serverless Function para enviar mensajes de WhatsApp vía Twilio
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -17,46 +17,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN;
-    const phoneNumberId = process.env.META_WHATSAPP_PHONE_NUMBER_ID;
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const fromNumber = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886';
 
-    if (!accessToken || !phoneNumberId) {
-      throw new Error('Meta WhatsApp credentials not configured');
+    if (!accountSid || !authToken) {
+      throw new Error('Twilio credentials not configured');
     }
 
-    // Limpiar número de teléfono (remover espacios, guiones, etc)
-    const cleanPhone = to.replace(/\D/g, '');
+    // Importar Twilio dinámicamente
+    const twilio = await import('twilio');
+    const client = twilio.default(accountSid, authToken);
 
-    // Enviar mensaje usando Meta Cloud API
-    const response = await fetch(
-      `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: cleanPhone,
-          type: 'text',
-          text: {
-            body: message,
-          },
-        }),
-      }
-    );
+    // Asegurar formato correcto del número
+    const toNumber = to.startsWith('whatsapp:') ? to : `whatsapp:+${to.replace(/\D/g, '')}`;
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error?.message || 'Failed to send message');
-    }
+    // Enviar mensaje
+    const messageResponse = await client.messages.create({
+      body: message,
+      from: fromNumber,
+      to: toNumber,
+    });
 
     return res.status(200).json({
       success: true,
-      messageId: data.messages?.[0]?.id,
-      status: 'sent',
+      messageSid: messageResponse.sid,
+      status: messageResponse.status,
     });
   } catch (error: any) {
     console.error('Error sending WhatsApp message:', error);
