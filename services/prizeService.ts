@@ -41,10 +41,10 @@ export const PRIZES: Prize[] = [
 
 // Configuración del negocio (para WhatsApp)
 export const BUSINESS_CONFIG = {
-  whatsapp: '5215512345678', // Número de WhatsApp del negocio
-  instagram: 'expendio_oficial',
-  googleMapsUrl: 'https://maps.google.com/?q=expendio',
-  address: 'Calle Principal #123, Col. Centro',
+  whatsapp: '526673442996', // Número de WhatsApp del negocio (México)
+  instagram: 'expendio.mx',
+  googleMapsUrl: 'https://www.google.com/maps/place/Expendio+Mx/@24.8202106,-107.4030162,17z/data=!3m1!4b1!4m6!3m5!1s0x86bcdb6a4d70131d:0x52b39d898a08c9b9!8m2!3d24.8202106!4d-107.4004413!16s%2Fg%2F11zhx5fj0s?entry=ttu&g_ep=EgoyMDI1MTExNy4wIKXMDSoASAFQAw%3D%3D',
+  address: 'Av. Paseo Claussen, Desarrollo Urbano Tres Ríos, Culiacán, Sinaloa',
 };
 
 /**

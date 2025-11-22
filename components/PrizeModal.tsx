@@ -4,6 +4,7 @@ import SpinWheel, { DEFAULT_PRIZES } from './SpinWheel';
 import type { Prize } from './SpinWheel';
 import { createCoupon, getWhatsAppUrl, BUSINESS_CONFIG, PRIZES } from '../services/prizeService';
 import type { Coupon } from '../services/prizeService';
+import { sendPrizeWelcomeMessage } from '../services/whatsappService';
 
 // Error boundary simple
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
@@ -66,6 +67,22 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
         if (data) {
           setCoupon(data);
           onPrizeAwarded?.(prize, data);
+
+          // Enviar mensaje de WhatsApp automáticamente
+          if (clienteTelefono && clienteNombre) {
+            try {
+              await sendPrizeWelcomeMessage(
+                clienteTelefono,
+                clienteNombre,
+                prize.name,
+                data.code
+              );
+              console.log('✅ Mensaje de WhatsApp enviado');
+            } catch (err) {
+              console.error('Error enviando WhatsApp:', err);
+              // No mostrar error al usuario, solo log
+            }
+          }
         }
       } catch (err) {
         console.error('Error creando cupón:', err);
