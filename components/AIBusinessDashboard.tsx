@@ -393,7 +393,7 @@ const AIBusinessDashboard: React.FC = () => {
                           </td>
                           <td className="px-4 py-2 text-right">{seg.score}</td>
                           <td className="px-4 py-2 text-right">${seg.valorVida?.toLocaleString()}</td>
-                          <td className="px-4 py-2 text-right">${seg.ticketPromedio?.toFixed(0)}</td>
+                          <td className="px-4 py-2 text-right">${typeof seg.ticketPromedio === 'number' ? seg.ticketPromedio.toFixed(0) : '0'}</td>
                           <td className="px-4 py-2 text-xs text-gray-600">
                             {seg.recomendaciones?.[0] || '-'}
                           </td>
@@ -434,7 +434,7 @@ const AIBusinessDashboard: React.FC = () => {
                     <div>
                       <h3 className="font-bold">{item.nombre}</h3>
                       <p className="text-sm text-gray-600">
-                        Stock: {item.stockActual} | Consumo diario: {item.consumoPromedioDiario?.toFixed(1)}
+                        Stock: {item.stockActual} | Consumo diario: {typeof item.consumoPromedioDiario === 'number' ? item.consumoPromedioDiario.toFixed(1) : '0.0'}
                       </p>
                     </div>
                     <div className="text-right">
