@@ -150,20 +150,56 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
                   </h3>
 
                   {coupon && (
-                    <div className="bg-gray-100 p-4 rounded-lg">
-                      <p className="text-sm text-gray-500">Tu código de cupón:</p>
-                      <p className="text-3xl font-mono font-bold text-expendio-primary tracking-wider">
-                        {coupon.code}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-2">
-                        Válido hasta: {new Date(coupon.expires_at).toLocaleDateString('es-MX')}
-                      </p>
-                    </div>
-                  )}
+                    <>
+                      <div className="bg-gradient-to-r from-expendio-primary to-expendio-red p-4 rounded-lg text-white text-center">
+                        <p className="text-sm opacity-80">Tu código de cupón:</p>
+                        <p className="text-3xl font-mono font-bold tracking-wider">
+                          {coupon.code}
+                        </p>
+                        <p className="text-sm opacity-90 mt-1">
+                          Válido hasta: {new Date(coupon.expires_at).toLocaleDateString('es-MX')}
+                        </p>
+                      </div>
 
-                  <Button onClick={handleClaimPrize} fullWidth>
-                    🎁 Reclamar Premio
-                  </Button>
+                      <p className="text-gray-600 text-sm">
+                        📲 Te enviamos un mensaje por WhatsApp con tu cupón
+                      </p>
+
+                      {/* Botones directamente aquí */}
+                      <div className="space-y-3">
+                        {/* WhatsApp */}
+                        <a
+                          href={getWhatsAppUrl(coupon, wonPrize as any)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
+                          <Button fullWidth className="bg-green-500 hover:bg-green-600">
+                            <span className="flex items-center justify-center gap-2">
+                              💬 Abrir WhatsApp
+                            </span>
+                          </Button>
+                        </a>
+
+                        {/* Instagram */}
+                        <a
+                          href={`https://instagram.com/${BUSINESS_CONFIG.instagram}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
+                          <Button fullWidth variant="outline" className="border-pink-500 text-pink-500 hover:bg-pink-50">
+                            📸 Síguenos en Instagram
+                          </Button>
+                        </a>
+
+                        {/* Cerrar */}
+                        <Button onClick={onClose} fullWidth variant="outline">
+                          Continuar
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
