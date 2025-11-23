@@ -2,10 +2,11 @@
  * Scanner de QR para que meseros/hostess canjeen cupones
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from './common/Card';
 import { Button } from './common/Button';
 import { supabase } from '../services/supabaseClient';
+import { BrowserMultiFormatReader } from '@zxing/library';
 
 interface CouponScannerProps {
   initialCode?: string | null;
@@ -19,6 +20,12 @@ const CouponScanner: React.FC<CouponScannerProps> = ({ initialCode }) => {
     message: string;
     coupon?: any;
   } | null>(null);
+
+  // Estados para scanner de cámara
+  const [isScanning, setIsScanning] = useState(false);
+  const [cameraError, setCameraError] = useState<string>('');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
 
   // Auto-validar si viene un código en la URL
   useEffect(() => {
@@ -119,10 +126,79 @@ const CouponScanner: React.FC<CouponScannerProps> = ({ initialCode }) => {
     }
   };
 
-  const handleScanQR = () => {
-    // En producción, esto abriría la cámara para escanear
-    alert('Funcionalidad de escaneo de QR próximamente. Por ahora usa el código manual.');
+  // Iniciar escaneo con cámara
+  const handleScanQR = async () => {
+    setIsScanning(true);
+    setCameraError('');
+    setResult(null);
+
+    try {
+      codeReaderRef.current = new BrowserMultiFormatReader();
+      const videoInputDevices = await codeReaderRef.current.listVideoInputDevices();
+
+      if (videoInputDevices.length === 0) {
+        setCameraError('No se detectó ninguna cámara en tu dispositivo');
+        setIsScanning(false);
+        return;
+      }
+
+      // Usar la cámara trasera si está disponible (mejor para móviles)
+      const selectedDevice = videoInputDevices.find(device =>
+        device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('trasera')
+      ) || videoInputDevices[0];
+
+      // Iniciar escaneo continuo
+      codeReaderRef.current.decodeFromVideoDevice(
+        selectedDevice.deviceId,
+        videoRef.current!,
+        (result, error) => {
+          if (result) {
+            // QR detectado
+            const qrText = result.getText();
+            console.log('📷 QR detectado:', qrText);
+
+            // Extraer código del QR (puede venir como URL)
+            let code = qrText;
+            if (qrText.includes('code=')) {
+              const urlParams = new URLSearchParams(qrText.split('?')[1]);
+              code = urlParams.get('code') || qrText;
+            }
+
+            // Detener escaneo
+            stopScanning();
+
+            // Validar cupón
+            validateAndRedeemCoupon(code.trim().toUpperCase());
+          }
+
+          if (error && !(error.name === 'NotFoundException')) {
+            // Ignorar NotFoundException (no hay QR en el frame)
+            console.error('Error escaneando:', error);
+          }
+        }
+      );
+    } catch (err: any) {
+      console.error('Error iniciando cámara:', err);
+      setCameraError('No se pudo acceder a la cámara. Verifica los permisos.');
+      setIsScanning(false);
+    }
   };
+
+  // Detener escaneo
+  const stopScanning = () => {
+    if (codeReaderRef.current) {
+      codeReaderRef.current.reset();
+      codeReaderRef.current = null;
+    }
+    setIsScanning(false);
+  };
+
+  // Cleanup al desmontar
+  useEffect(() => {
+    return () => {
+      stopScanning();
+    };
+  }, []);
 
   return (
     <div className="max-w-2xl mx-auto p-4">
@@ -135,16 +211,50 @@ const CouponScanner: React.FC<CouponScannerProps> = ({ initialCode }) => {
             Escanea el QR del cliente o ingresa el código manualmente
           </p>
 
-          {/* Botón para escanear QR */}
-          <div className="mb-6">
-            <Button
-              onClick={handleScanQR}
-              fullWidth
-              className="bg-expendio-primary hover:bg-expendio-dark h-16 text-lg"
-            >
-              📷 Escanear QR
-            </Button>
-          </div>
+          {/* Scanner de QR con cámara */}
+          {isScanning ? (
+            <div className="mb-6">
+              <div className="relative bg-black rounded-lg overflow-hidden">
+                <video
+                  ref={videoRef}
+                  className="w-full h-80 object-cover"
+                  autoPlay
+                  playsInline
+                />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  {/* Marco de escaneo */}
+                  <div className="border-4 border-expendio-primary w-64 h-64 rounded-lg shadow-lg">
+                    <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
+                      <p className="text-white bg-black/50 px-4 py-2 rounded-lg text-sm">
+                        Enfoca el código QR
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <Button
+                onClick={stopScanning}
+                fullWidth
+                className="mt-4 bg-gray-600 hover:bg-gray-700"
+              >
+                ✕ Cancelar Escaneo
+              </Button>
+              {cameraError && (
+                <p className="text-red-600 text-sm mt-2 text-center">{cameraError}</p>
+              )}
+            </div>
+          ) : (
+            <div className="mb-6">
+              <Button
+                onClick={handleScanQR}
+                fullWidth
+                className="bg-expendio-primary hover:bg-expendio-dark h-16 text-lg"
+                disabled={loading}
+              >
+                📷 Escanear QR con Cámara
+              </Button>
+            </div>
+          )}
 
           <div className="flex items-center gap-4 mb-6">
             <div className="flex-1 border-t border-gray-300"></div>

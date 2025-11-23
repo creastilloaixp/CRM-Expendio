@@ -12,6 +12,8 @@
     "@google/generative-ai": "^0.24.1",
     "@stripe/stripe-js": "^8.5.2",
     "@supabase/supabase-js": "^2.81.1",
+    "@zxing/library": "^0.21.3",
+    "canvas-confetti": "^1.9.4",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "marked": "^13.0.2",

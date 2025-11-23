@@ -52,6 +52,25 @@
 - [x] Mostrar pedidos activos en mesa ocupada
 - [x] Total calculado automáticamente para liberar mesa
 
+### Sistema de Gamificación y Premios (Completado - commit: PENDIENTE)
+- [x] **Sistema de Niveles VIP** (Bronce, Plata, Oro, Platino)
+  - Niveles calculados automáticamente por visitas y gasto total
+  - Probabilidades mejoradas en ruleta según nivel
+  - Badges visuales en toda la experiencia
+- [x] **Mejoras a la Ruleta de Premios**
+  - Animación de confetti al ganar
+  - 7 premios diferentes con probabilidades dinámicas
+  - Sistema anti-fraude con cupones únicos
+- [x] **Historial de Premios**
+  - Vista completa de cupones ganados
+  - Estados: Activo, Canjeado, Expirado
+  - Integrado en PrizeModal
+- [x] **Escaneo de QR con Cámara Real**
+  - Scanner integrado con @zxing/library
+  - Detección automática de cámara trasera en móviles
+  - Validación instantánea de cupones
+  - Modo manual como fallback
+
 ### Funcionalidades Pendientes
 - [ ] Notificaciones push (PWA)
 - [ ] Integración de pagos (Stripe/MercadoPago)
@@ -67,6 +86,17 @@
 - Lazy loading en todos los componentes principales
 - Hash routing para navegación SPA
 - Supabase como BaaS
+- canvas-confetti para animaciones de celebración
+- @zxing/library para escaneo de QR codes
+- Sistema de niveles VIP con triggers automáticos en BD
+
+## Niveles VIP - Criterios
+| Nivel | Visitas Mínimas | Gasto Mínimo | Probabilidad Suerte | Beneficios |
+|-------|----------------|--------------|-------------------|------------|
+| 🥉 Bronce | 0 | $0 | 33% | Nivel base |
+| 🥈 Plata | 10 | $2,000 | 18% | +20% prob. premios |
+| 🥇 Oro | 20 | $5,000 | 8% | +40% prob. premios |
+| 💎 Platino | 50 | $10,000 | 1% | +80% prob. premios |
 
 ---
 ⏰ **RECORDATORIO**: Hacer checkpoint cada 30-45 minutos de trabajo para guardar progreso en este archivo.

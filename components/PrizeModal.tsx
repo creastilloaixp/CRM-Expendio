@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './common/Button';
 import SpinWheel, { DEFAULT_PRIZES } from './SpinWheel';
 import type { Prize } from './SpinWheel';
-import { createCoupon, getWhatsAppUrl, BUSINESS_CONFIG, PRIZES } from '../services/prizeService';
-import type { Coupon } from '../services/prizeService';
+import { createCoupon, getWhatsAppUrl, BUSINESS_CONFIG, PRIZES, getPrizesByVIPLevel, VIP_INFO } from '../services/prizeService';
+import type { Coupon, VIPLevel } from '../services/prizeService';
 import { sendPrizeWelcomeMessage } from '../services/whatsappService';
 import QRCode from 'qrcode';
+import confetti from 'canvas-confetti';
+import { getClienteCupones } from '../services/api';
 
 // Error boundary simple
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
@@ -31,6 +33,7 @@ interface PrizeModalProps {
   clienteNombre?: string;
   clienteTelefono?: string;
   onPrizeAwarded?: (prize: Prize, coupon: Coupon) => void;
+  vipLevel?: VIPLevel;
 }
 
 type ModalStep = 'spin' | 'result' | 'claim';
@@ -41,7 +44,8 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
   clienteId,
   clienteNombre,
   clienteTelefono,
-  onPrizeAwarded
+  onPrizeAwarded,
+  vipLevel = 'bronce'
 }) => {
   const [step, setStep] = useState<ModalStep>('spin');
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
@@ -50,14 +54,41 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [debugLog, setDebugLog] = useState<string[]>([]);
 
+  // Obtener premios según nivel VIP
+  const vipPrizes = getPrizesByVIPLevel(vipLevel);
+  const vipInfo = VIP_INFO[vipLevel];
+
+  // Estado para historial de premios
+  const [prizeHistory, setPrizeHistory] = useState<Coupon[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       setStep('spin');
       setWonPrize(null);
       setCoupon(null);
       setQrCodeUrl('');
+      setShowHistory(false);
+      // Cargar historial de premios
+      loadPrizeHistory();
     }
   }, [isOpen]);
+
+  const loadPrizeHistory = async () => {
+    if (!clienteId) return;
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await getClienteCupones(clienteId);
+      if (!error && data) {
+        setPrizeHistory(data as Coupon[]);
+      }
+    } catch (error) {
+      console.error('Error cargando historial:', error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   // Generar QR code cuando se crea el cupón
   useEffect(() => {
@@ -83,9 +114,48 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
     setDebugLog(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
   };
 
+  // Función para lanzar confetti
+  const launchConfetti = (isWin: boolean) => {
+    if (isWin) {
+      // Confetti dorado para premios
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#FFD700', '#FFA500', '#FF6B6B', '#4ECDC4']
+      });
+
+      // Segundo burst después de 250ms
+      setTimeout(() => {
+        confetti({
+          particleCount: 50,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: ['#FFD700', '#FFA500']
+        });
+      }, 250);
+
+      setTimeout(() => {
+        confetti({
+          particleCount: 50,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: ['#FFD700', '#FFA500']
+        });
+      }, 400);
+    }
+  };
+
   const handleSpinComplete = async (prize: Prize) => {
     addDebugLog('🎰 Premio ganado: ' + prize.name);
     setWonPrize(prize);
+
+    // Lanzar confetti si ganó algo bueno
+    if (prize.id !== 'suerte') {
+      launchConfetti(true);
+    }
 
     // Crear cupón si no es "suerte para la próxima"
     if (prize.id !== 'suerte' && clienteId) {
@@ -143,24 +213,136 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50 p-4">
       <div className="bg-gradient-to-b from-expendio-bg to-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         {/* Header */}
-        <div className="bg-expendio-dark text-white p-4 text-center">
-          <h2 className="text-2xl font-display">
-            {step === 'spin' && '🎰 ¡Gira la Ruleta!'}
-            {step === 'result' && '🎉 ¡Resultado!'}
-            {step === 'claim' && '🎁 Reclama tu Premio'}
-          </h2>
+        <div className="bg-expendio-dark text-white p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-display">
+              {showHistory && '📜 Historial de Premios'}
+              {!showHistory && step === 'spin' && '🎰 ¡Gira la Ruleta!'}
+              {!showHistory && step === 'result' && '🎉 ¡Resultado!'}
+              {!showHistory && step === 'claim' && '🎁 Reclama tu Premio'}
+            </h2>
+            {step === 'spin' && !showHistory && prizeHistory.length > 0 && (
+              <button
+                onClick={() => setShowHistory(true)}
+                className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition-colors"
+              >
+                📜 Ver historial ({prizeHistory.length})
+              </button>
+            )}
+            {showHistory && (
+              <button
+                onClick={() => setShowHistory(false)}
+                className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition-colors"
+              >
+                ← Volver
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="p-6">
+          {/* Historial de Premios */}
+          {showHistory && (
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {loadingHistory ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-expendio-primary mx-auto mb-2"></div>
+                  <p className="text-gray-600">Cargando historial...</p>
+                </div>
+              ) : prizeHistory.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-3">🎁</div>
+                  <p className="text-gray-600">Aún no tienes premios ganados</p>
+                  <p className="text-sm text-gray-500 mt-2">¡Gira la ruleta para empezar!</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Total de premios ganados: <strong>{prizeHistory.length}</strong>
+                  </p>
+                  {prizeHistory.map((coupon) => (
+                    <div
+                      key={coupon.id}
+                      className={`border-2 rounded-lg p-4 ${
+                        coupon.status === 'redeemed'
+                          ? 'bg-gray-50 border-gray-300'
+                          : coupon.status === 'expired'
+                          ? 'bg-red-50 border-red-300'
+                          : 'bg-green-50 border-green-500'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-2xl">{coupon.prize_icon || '🎁'}</span>
+                            <h4 className="font-bold text-expendio-dark">
+                              {coupon.prize_name}
+                            </h4>
+                          </div>
+                          <p className="text-xs text-gray-600 font-mono">
+                            {coupon.code}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Ganado: {new Date(coupon.created_at).toLocaleDateString('es-MX')}
+                          </p>
+                          {coupon.status === 'redeemed' && coupon.redeemed_at && (
+                            <p className="text-xs text-gray-500">
+                              ✅ Canjeado: {new Date(coupon.redeemed_at).toLocaleDateString('es-MX')}
+                            </p>
+                          )}
+                          {coupon.status === 'expired' && (
+                            <p className="text-xs text-red-600">
+                              ⏰ Expirado
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          {coupon.status === 'active' && (
+                            <span className="inline-block bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                              Activo
+                            </span>
+                          )}
+                          {coupon.status === 'redeemed' && (
+                            <span className="inline-block bg-gray-500 text-white text-xs px-2 py-1 rounded-full">
+                              Usado
+                            </span>
+                          )}
+                          {coupon.status === 'expired' && (
+                            <span className="inline-block bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                              Expirado
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+
           {/* Step: Spin */}
-          {step === 'spin' && (
+          {step === 'spin' && !showHistory && (
             <div className="flex flex-col items-center">
+              {/* Badge VIP */}
+              {vipLevel !== 'bronce' && (
+                <div
+                  className="mb-4 px-6 py-3 rounded-lg font-bold text-white shadow-lg text-center"
+                  style={{ backgroundColor: vipInfo.color }}
+                >
+                  <div className="text-2xl mb-1">{vipInfo.icon}</div>
+                  <div className="text-sm">Cliente {vipInfo.name}</div>
+                  <div className="text-xs opacity-90">¡Mejores probabilidades de ganar!</div>
+                </div>
+              )}
+
               <p className="text-gray-600 mb-4 text-center">
                 ¡Gracias por visitarnos! Gira la ruleta y gana premios increíbles
               </p>
               <SpinWheel
-                prizes={DEFAULT_PRIZES}
+                prizes={vipPrizes}
                 onSpinComplete={handleSpinComplete}
+                vipLevel={vipLevel}
               />
             </div>
           )}

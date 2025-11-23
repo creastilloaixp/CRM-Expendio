@@ -891,3 +891,18 @@ export const markReservationAsArrived = async (reservaId: string) => {
         return { data: visitaData, error: null };
     });
 };
+
+/**
+ * Obtener cupones de un cliente
+ */
+export const getClienteCupones = async (clienteId: string) => {
+    const { supabase } = await import('./supabaseClient');
+    return api('getClienteCupones', async () => {
+        const { data, error } = await supabase
+            .from('cupones')
+            .select('*')
+            .eq('cliente_id', clienteId)
+            .order('created_at', { ascending: false });
+        return { data, error };
+    });
+};

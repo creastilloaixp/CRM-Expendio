@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from './common/Button';
+import type { VIPLevel } from '../services/prizeService';
+import { VIP_INFO } from '../services/prizeService';
 
 export interface Prize {
   id: string;
@@ -13,6 +15,7 @@ interface SpinWheelProps {
   prizes?: Prize[];
   onSpinComplete: (prize: Prize) => void;
   disabled?: boolean;
+  vipLevel?: VIPLevel;
 }
 
 const DEFAULT_PRIZES: Prize[] = [
@@ -28,10 +31,13 @@ const DEFAULT_PRIZES: Prize[] = [
 const SpinWheel: React.FC<SpinWheelProps> = ({
   prizes = DEFAULT_PRIZES,
   onSpinComplete,
-  disabled = false
+  disabled = false,
+  vipLevel = 'bronce'
 }) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
+
+  const vipInfo = VIP_INFO[vipLevel];
 
   const selectPrizeByProbability = (): Prize => {
     const totalProb = prizes.reduce((sum, p) => sum + p.probability, 0);
@@ -76,6 +82,16 @@ const SpinWheel: React.FC<SpinWheelProps> = ({
 
   return (
     <div className="flex flex-col items-center gap-6">
+      {/* Badge de nivel VIP */}
+      {vipLevel !== 'bronce' && (
+        <div
+          className="px-4 py-2 rounded-full font-bold text-white shadow-lg"
+          style={{ backgroundColor: vipInfo.color }}
+        >
+          {vipInfo.icon} Nivel {vipInfo.name} - ¡Mejores probabilidades!
+        </div>
+      )}
+
       {/* Indicador */}
       <div className="relative">
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10 text-4xl">

@@ -42,6 +42,7 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
   const [loadingPuntos, setLoadingPuntos] = useState(false);
   const [showPrizeModal, setShowPrizeModal] = useState(false);
   const [clienteId, setClienteId] = useState<string>('');
+  const [vipLevel, setVipLevel] = useState<'bronce' | 'plata' | 'oro' | 'platino'>('bronce');
 
   useEffect(() => {
     initializeCheckIn();
@@ -103,12 +104,29 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
     // Si tenemos cliente_id guardado, usarlo directamente (más confiable)
     if (savedClienteId && savedNombre) {
       console.log('✅ Usuario recurrente detectado por localStorage');
-      setReturningUser({
-        nombre: savedNombre,
-        email: savedEmail || '',
-        telefono: savedPhone || '',
-        id: savedClienteId
-      });
+
+      // Obtener datos completos del cliente incluyendo vip_level
+      try {
+        const { data: fullClienteData } = await getClienteByTelefono(savedPhone || '');
+        const clienteVipLevel = fullClienteData?.vip_level || 'bronce';
+        setVipLevel(clienteVipLevel);
+
+        setReturningUser({
+          nombre: savedNombre,
+          email: savedEmail || '',
+          telefono: savedPhone || '',
+          id: savedClienteId,
+          vip_level: clienteVipLevel
+        });
+      } catch {
+        setReturningUser({
+          nombre: savedNombre,
+          email: savedEmail || '',
+          telefono: savedPhone || '',
+          id: savedClienteId
+        });
+      }
+
       loadClientePuntos(savedClienteId);
       setStatus('welcome_back');
       return;
@@ -122,11 +140,14 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
         if (clienteByPhone && !error) {
           localStorage.setItem('expendio_cliente_id', clienteByPhone.id);
           localStorage.setItem('expendio_user_nombre', clienteByPhone.nombre || 'Usuario');
+          const clienteVipLevel = clienteByPhone.vip_level || 'bronce';
+          setVipLevel(clienteVipLevel);
           setReturningUser({
             nombre: clienteByPhone.nombre || 'Usuario',
             email: clienteByPhone.email,
             telefono: clienteByPhone.telefono,
-            id: clienteByPhone.id
+            id: clienteByPhone.id,
+            vip_level: clienteVipLevel
           });
           loadClientePuntos(clienteByPhone.id);
           setStatus('welcome_back');
@@ -509,6 +530,7 @@ const CheckIn: React.FC<CheckInProps> = ({ mesaName }) => {
           clienteId={clienteId}
           clienteNombre={formData.nombre || returningUser?.nombre}
           clienteTelefono={formData.telefono}
+          vipLevel={vipLevel}
         />
       </>
     );
