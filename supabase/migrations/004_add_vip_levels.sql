@@ -78,8 +78,7 @@ SELECT
   vip_level,
   COUNT(*) as total_clientes,
   ROUND(AVG(total_visitas), 2) as promedio_visitas,
-  ROUND(AVG(total_gastado), 2) as promedio_gastado,
-  ROUND(AVG(puntos_lealtad), 2) as promedio_puntos
+  ROUND(AVG(total_gastado), 2) as promedio_gastado
 FROM clientes
 GROUP BY vip_level
 ORDER BY
