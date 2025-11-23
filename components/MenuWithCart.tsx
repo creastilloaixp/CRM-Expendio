@@ -42,6 +42,7 @@ const MenuWithCart: React.FC<MenuProps> = ({ mesaName }) => {
 
     useEffect(() => {
         const initializeMenu = async () => {
+            console.log('🍽️ Inicializando menú...');
             try {
                 // Intentar obtener datos de localStorage primero
                 const clienteId = localStorage.getItem('expendio_cliente_id');
@@ -49,6 +50,14 @@ const MenuWithCart: React.FC<MenuProps> = ({ mesaName }) => {
                 const nombre = localStorage.getItem('expendio_user_nombre');
                 const email = localStorage.getItem('expendio_user_email');
                 const telefono = localStorage.getItem('expendio_user_phone');
+
+                console.log('📋 Datos de localStorage:', {
+                    clienteId,
+                    visitaIdLocal,
+                    nombre,
+                    email,
+                    telefono
+                });
 
                 if (clienteId && nombre && email) {
                     // Usuario desde localStorage
@@ -62,15 +71,21 @@ const MenuWithCart: React.FC<MenuProps> = ({ mesaName }) => {
                         fecha_creacion: new Date().toISOString()
                     };
                     setUser(cliente);
+                    console.log('✅ Cliente cargado:', cliente);
 
                     if (visitaIdLocal) {
                         setVisitaId(visitaIdLocal);
+                        console.log('✅ visitaId cargado desde localStorage:', visitaIdLocal);
                     } else {
                         // Intentar obtener visita activa del cliente
+                        console.log('⚠️ No hay visitaId en localStorage, buscando visita activa...');
                         const visitaResponse = await getVisitaActualUsuario(clienteId);
                         if (visitaResponse.data) {
                             setVisitaId(visitaResponse.data.id);
                             localStorage.setItem('expendio_visita_id', visitaResponse.data.id);
+                            console.log('✅ visitaId obtenido de BD:', visitaResponse.data.id);
+                        } else {
+                            console.warn('⚠️ No se encontró visita activa');
                         }
                     }
                 } else {
@@ -186,33 +201,56 @@ const MenuWithCart: React.FC<MenuProps> = ({ mesaName }) => {
 
     // 🛒 NUEVO: Confirmar y enviar pedido
     const handleConfirmOrder = async () => {
-        let currentVisitaId = visitaId;
+        console.log('🛒 handleConfirmOrder llamado');
+        console.log('🛒 visitaId estado:', visitaId);
+        console.log('🛒 localStorage visitaId:', localStorage.getItem('expendio_visita_id'));
+        console.log('🛒 localStorage clienteId:', localStorage.getItem('expendio_cliente_id'));
+
+        let currentVisitaId = visitaId || localStorage.getItem('expendio_visita_id');
 
         // Si no hay visita, intentar crearla automáticamente
         if (!currentVisitaId) {
+            console.log('⚠️ No hay visitaId, intentando crear automáticamente...');
             const clienteId = localStorage.getItem('expendio_cliente_id');
             const mesaFromUrl = new URLSearchParams(window.location.hash.split('?')[1] || '').get('mesa');
+
+            console.log('🔍 clienteId:', clienteId, 'mesa:', mesaFromUrl);
 
             if (clienteId && mesaFromUrl) {
                 try {
                     const { startVisit } = await import('../services/api');
                     const { data } = await startVisit(mesaFromUrl, 1, clienteId);
+                    console.log('📝 startVisit response:', data);
                     if (data) {
                         const newVisitaId = typeof data === 'object' ? (data.visita_id || data.id) : data;
                         if (newVisitaId) {
                             currentVisitaId = newVisitaId;
                             setVisitaId(newVisitaId);
                             localStorage.setItem('expendio_visita_id', newVisitaId);
+                            console.log('✅ Nueva visita creada:', newVisitaId);
                         }
                     }
                 } catch (e) {
-                    console.error('Error creando visita automática:', e);
+                    console.error('❌ Error creando visita automática:', e);
                 }
+            } else {
+                console.error('❌ Faltan datos: clienteId o mesa');
             }
         }
 
         if (!currentVisitaId) {
-            alert('No se pudo encontrar tu visita activa. Por favor escanea el QR de tu mesa nuevamente.');
+            const debugInfo = `
+DEBUG INFO:
+- visitaId (state): ${visitaId}
+- visitaId (localStorage): ${localStorage.getItem('expendio_visita_id')}
+- clienteId: ${localStorage.getItem('expendio_cliente_id')}
+- nombre: ${localStorage.getItem('expendio_user_nombre')}
+- email: ${localStorage.getItem('expendio_user_email')}
+- mesa: ${new URLSearchParams(window.location.hash.split('?')[1] || '').get('mesa')}
+            `.trim();
+
+            alert('❌ No se pudo encontrar tu visita activa.\n\n' + debugInfo + '\n\nPor favor escanea el QR de tu mesa nuevamente.');
+            console.error('❌ No hay visitaId disponible');
             return;
         }
 
