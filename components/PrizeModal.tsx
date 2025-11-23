@@ -61,6 +61,7 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
   // Generar QR code cuando se crea el cupón
   useEffect(() => {
     if (coupon) {
+      console.log('🔲 Generando QR para cupón:', coupon.code);
       const qrData = JSON.stringify({
         type: 'coupon_redeem',
         coupon_code: coupon.code,
@@ -70,33 +71,65 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
       });
 
       QRCode.toDataURL(qrData, { width: 300, margin: 2 })
-        .then((url) => setQrCodeUrl(url))
-        .catch((err) => console.error('Error generando QR:', err));
+        .then((url) => {
+          console.log('✅ QR generado exitosamente');
+          setQrCodeUrl(url);
+        })
+        .catch((err) => {
+          console.error('❌ Error generando QR:', err);
+          alert('Error generando QR: ' + err.message);
+        });
     }
   }, [coupon]);
 
   const handleSpinComplete = async (prize: Prize) => {
+    console.log('🎰 handleSpinComplete llamado, premio:', prize);
     setWonPrize(prize);
 
     // Crear cupón si no es "suerte para la próxima"
     if (prize.id !== 'suerte' && clienteId) {
       setIsCreatingCoupon(true);
+      console.log('📝 Creando cupón para cliente:', clienteId);
+
       try {
         const fullPrize = PRIZES.find(p => p.id === prize.id) || prize;
-        const { data } = await createCoupon(fullPrize, clienteId, clienteNombre, clienteTelefono);
+        console.log('🎁 Premio completo:', fullPrize);
+
+        const { data, error } = await createCoupon(fullPrize, clienteId, clienteNombre, clienteTelefono);
+
+        console.log('📊 Resultado createCoupon:', { data, error });
+
+        if (error) {
+          console.error('❌ Error en createCoupon:', error);
+          alert('Error al crear cupón: ' + error.message);
+          setIsCreatingCoupon(false);
+          setStep('result');
+          return;
+        }
+
         if (data) {
+          console.log('✅ Cupón creado exitosamente:', data.code);
           setCoupon(data);
           onPrizeAwarded?.(prize, data);
-          console.log('✅ Cupón creado:', data.code);
+        } else {
+          console.error('❌ No se recibió data del cupón');
+          alert('Error: No se pudo crear el cupón');
         }
-      } catch (err) {
-        console.error('Error creando cupón:', err);
+      } catch (err: any) {
+        console.error('❌ Excepción creando cupón:', err);
+        alert('Error inesperado: ' + (err.message || 'Desconocido'));
       }
+
       setIsCreatingCoupon(false);
+      console.log('✓ setIsCreatingCoupon(false)');
     }
 
     // Mostrar resultado después de un momento
-    setTimeout(() => setStep('result'), 500);
+    console.log('⏰ Cambiando a step=result en 500ms');
+    setTimeout(() => {
+      console.log('✓ setStep("result")');
+      setStep('result');
+    }, 500);
   };
 
   const handleClaimPrize = () => {
