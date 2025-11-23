@@ -63,13 +63,8 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
   useEffect(() => {
     if (coupon) {
       console.log('🔲 Generando QR para cupón:', coupon.code);
-      const qrData = JSON.stringify({
-        type: 'coupon_redeem',
-        coupon_code: coupon.code,
-        coupon_id: coupon.id,
-        prize_name: coupon.prize_name,
-        cliente_nombre: coupon.cliente_nombre,
-      });
+      // URL que el mesero escaneará para validar el cupón
+      const qrData = `${window.location.origin}${window.location.pathname}#/scanner?code=${coupon.code}`;
 
       QRCode.toDataURL(qrData, { width: 300, margin: 2 })
         .then((url) => {

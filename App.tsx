@@ -26,6 +26,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentView, setCurrentView] = useState<View>('login');
   const [checkInMesa, setCheckInMesa] = useState<string | null>(null);
+  const [scannerCode, setScannerCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Verificar sesión existente al cargar y escuchar cambios
@@ -59,20 +60,29 @@ const App: React.FC = () => {
     // Recommended: Read from search params (e.g., /?mesa=F1#/checkin)
     const mainSearchParams = new URLSearchParams(window.location.search);
     let mesa = mainSearchParams.get('mesa');
+    let code = mainSearchParams.get('code');
     console.log('🌍 App: mesa desde search params:', mesa);
+    console.log('🌍 App: code desde search params:', code);
 
     const hash = window.location.hash.substring(1);
     const [path, queryString] = hash.split('?');
     console.log('🌍 App: hash:', hash, 'path:', path, 'queryString:', queryString);
-    
+
     // Backwards compatibility: Read from hash if not in search (e.g., /#/checkin?mesa=F1)
-    if (!mesa && queryString) {
+    if (queryString) {
         const hashParams = new URLSearchParams(queryString);
-        mesa = hashParams.get('mesa');
-        console.log('🌍 App: mesa desde hash params:', mesa);
+        if (!mesa) {
+          mesa = hashParams.get('mesa');
+          console.log('🌍 App: mesa desde hash params:', mesa);
+        }
+        if (!code) {
+          code = hashParams.get('code');
+          console.log('🌍 App: code desde hash params:', code);
+        }
     }
-    
+
     console.log('🌍 App: mesa final:', mesa);
+    console.log('🌍 App: code final:', code);
     
     if (path.startsWith('/checkin')) {
       console.log('🌍 App: Setting checkin mesa:', mesa);
@@ -80,6 +90,10 @@ const App: React.FC = () => {
       setCurrentView('checkin');
     } else if (path.startsWith('/menu')) {
         setCurrentView('menu');
+    } else if (path.startsWith('/scanner')) {
+      console.log('🌍 App: Opening scanner with code:', code);
+      setScannerCode(code);
+      setCurrentView('scanner');
     } else if (isAuthenticated) {
       switch (path) {
         case '/dashboard':
@@ -186,7 +200,7 @@ const App: React.FC = () => {
     }
 
     if (currentView === 'scanner') {
-      return <CouponScanner />;
+      return <CouponScanner initialCode={scannerCode} />;
     }
 
     if (!isAuthenticated) {

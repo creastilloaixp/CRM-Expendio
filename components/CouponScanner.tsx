@@ -2,27 +2,31 @@
  * Scanner de QR para que meseros/hostess canjeen cupones
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from './common/Card';
 import { Button } from './common/Button';
 import { supabase } from '../services/supabaseClient';
 
-interface ScannedCoupon {
-  type: string;
-  coupon_code: string;
-  coupon_id: string;
-  prize_name: string;
-  cliente_nombre?: string;
+interface CouponScannerProps {
+  initialCode?: string | null;
 }
 
-const CouponScanner: React.FC = () => {
-  const [manualCode, setManualCode] = useState('');
+const CouponScanner: React.FC<CouponScannerProps> = ({ initialCode }) => {
+  const [manualCode, setManualCode] = useState(initialCode || '');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
     success: boolean;
     message: string;
     coupon?: any;
   } | null>(null);
+
+  // Auto-validar si viene un código en la URL
+  useEffect(() => {
+    if (initialCode && initialCode.trim()) {
+      console.log('📱 Auto-validando código desde QR:', initialCode);
+      validateAndRedeemCoupon(initialCode.trim().toUpperCase());
+    }
+  }, [initialCode]);
 
   const validateAndRedeemCoupon = async (code: string) => {
     setLoading(true);
@@ -33,58 +37,75 @@ const CouponScanner: React.FC = () => {
       const { data: coupon, error } = await supabase
         .from('cupones')
         .select('*')
-        .eq('code', code)
+        .eq('code', code.toUpperCase())
         .single();
 
       if (error || !coupon) {
         setResult({
           success: false,
-          message: 'Cupón no encontrado',
+          message: '❌ Cupón no encontrado. Verifica el código.',
         });
         return;
       }
 
-      // Verificar si ya fue canjeado
+      // 🔒 ANTI-FRAUDE: Verificar si ya fue canjeado
       if (coupon.status === 'redeemed') {
+        const fecha = new Date(coupon.redeemed_at).toLocaleString('es-MX', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
         setResult({
           success: false,
-          message: `Este cupón ya fue canjeado el ${new Date(coupon.redeemed_at).toLocaleString('es-MX')}`,
+          message: `⛔ Este cupón ya fue canjeado el ${fecha}`,
         });
         return;
       }
 
-      // Verificar si expiró
+      // 🔒 ANTI-FRAUDE: Verificar si expiró (30 días)
       if (coupon.status === 'expired' || new Date(coupon.expires_at) < new Date()) {
         setResult({
           success: false,
-          message: 'Este cupón ya expiró',
+          message: '⏰ Este cupón ya expiró. Los cupones son válidos por 30 días.',
         });
         return;
       }
 
-      // Canjear cupón
-      const { error: updateError } = await supabase
+      // 🔒 ANTI-FRAUDE: Canjear cupón con condición (atomic update)
+      // Esto previene race conditions si dos meseros escanean al mismo tiempo
+      const { data: updatedCoupon, error: updateError } = await supabase
         .from('cupones')
         .update({
           status: 'redeemed',
           redeemed_at: new Date().toISOString(),
         })
-        .eq('id', coupon.id);
+        .eq('id', coupon.id)
+        .eq('status', 'active') // Solo actualiza si sigue activo
+        .select()
+        .single();
 
-      if (updateError) {
-        throw updateError;
+      if (updateError || !updatedCoupon) {
+        console.error('Error al canjear:', updateError);
+        setResult({
+          success: false,
+          message: '⚠️ No se pudo canjear. Es posible que ya haya sido usado.',
+        });
+        return;
       }
 
+      // ✅ ÉXITO
       setResult({
         success: true,
-        message: '¡Cupón canjeado exitosamente!',
-        coupon,
+        message: '✅ ¡Cupón canjeado exitosamente!',
+        coupon: updatedCoupon,
       });
     } catch (err: any) {
       console.error('Error validando cupón:', err);
       setResult({
         success: false,
-        message: 'Error al validar cupón',
+        message: '🔴 Error de conexión. Intenta de nuevo.',
       });
     } finally {
       setLoading(false);
