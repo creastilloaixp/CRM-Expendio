@@ -39,8 +39,12 @@ const CouponDebug: React.FC = () => {
     setTestResult(null);
     console.log('🧪 TEST: Intentando canjear código:', code);
 
+    // Mostrar resultado inicial
+    setTestResult({ success: false, step: 'starting', message: 'Iniciando test...' });
+
     try {
       // Paso 1: Buscar cupón
+      console.log('🧪 TEST Paso 1: Buscando cupón...');
       const { data: coupon, error: searchError } = await supabase
         .from('cupones')
         .select('*')
@@ -50,23 +54,44 @@ const CouponDebug: React.FC = () => {
       console.log('🧪 TEST: Resultado búsqueda:', { coupon, searchError });
 
       if (searchError || !coupon) {
-        setTestResult({ success: false, step: 'search', error: searchError });
+        console.error('❌ Error en búsqueda:', searchError);
+        setTestResult({
+          success: false,
+          step: 'search',
+          error: searchError,
+          message: `No se encontró el cupón: ${searchError?.message || 'Unknown error'}`
+        });
         return;
       }
+
+      console.log('✅ Cupón encontrado:', coupon);
 
       // Paso 2: Verificar estado
+      console.log('🧪 TEST Paso 2: Verificando estado...');
       if (coupon.status !== 'active') {
-        setTestResult({ success: false, step: 'status', coupon });
+        console.warn('⚠️ Cupón no está activo:', coupon.status);
+        setTestResult({
+          success: false,
+          step: 'status',
+          coupon,
+          message: `Cupón no está activo. Estado actual: ${coupon.status}`
+        });
         return;
       }
 
+      console.log('✅ Cupón está activo');
+
       // Paso 3: Intentar update
+      console.log('🧪 TEST Paso 3: Intentando actualizar a redeemed...');
+      const updateData = {
+        status: 'redeemed',
+        redeemed_at: new Date().toISOString(),
+      };
+      console.log('📝 Datos del update:', updateData);
+
       const { data: updated, error: updateError } = await supabase
         .from('cupones')
-        .update({
-          status: 'redeemed',
-          redeemed_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', coupon.id)
         .eq('status', 'active')
         .select()
@@ -74,16 +99,41 @@ const CouponDebug: React.FC = () => {
 
       console.log('🧪 TEST: Resultado update:', { updated, updateError });
 
+      if (updateError) {
+        console.error('❌ Error en update:', updateError);
+        console.error('❌ Detalles completos:', {
+          code: updateError.code,
+          message: updateError.message,
+          details: updateError.details,
+          hint: updateError.hint
+        });
+      }
+
       setTestResult({
         success: !updateError && !!updated,
         step: 'update',
         coupon,
         updated,
-        error: updateError
+        error: updateError,
+        message: updateError
+          ? `Error al actualizar: ${updateError.message}`
+          : '✅ Cupón canjeado exitosamente!'
       });
-    } catch (err) {
+
+      if (!updateError && updated) {
+        console.log('✅ TEST EXITOSO: Cupón canjeado correctamente');
+        // Recargar lista
+        setTimeout(() => loadCupones(), 1000);
+      }
+    } catch (err: any) {
       console.error('🧪 TEST: Excepción:', err);
-      setTestResult({ success: false, step: 'exception', error: err });
+      console.error('🧪 Stack trace:', err.stack);
+      setTestResult({
+        success: false,
+        step: 'exception',
+        error: err,
+        message: `Excepción: ${err.message || 'Unknown error'}`
+      });
     }
   };
 
@@ -114,10 +164,26 @@ const CouponDebug: React.FC = () => {
             </div>
 
             {testResult && (
-              <div className={`mt-4 p-3 rounded ${testResult.success ? 'bg-green-100' : 'bg-red-100'}`}>
-                <pre className="text-xs overflow-auto">
-                  {JSON.stringify(testResult, null, 2)}
-                </pre>
+              <div className={`mt-4 p-4 rounded-lg border-2 ${testResult.success ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`}>
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="text-2xl">{testResult.success ? '✅' : '❌'}</span>
+                  <div className="flex-1">
+                    <p className={`font-bold ${testResult.success ? 'text-green-700' : 'text-red-700'}`}>
+                      {testResult.message || (testResult.success ? 'Éxito' : 'Error')}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Paso: {testResult.step}
+                    </p>
+                  </div>
+                </div>
+                <details className="mt-2">
+                  <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">
+                    Ver detalles técnicos (JSON)
+                  </summary>
+                  <pre className="text-xs overflow-auto mt-2 p-2 bg-white rounded border">
+                    {JSON.stringify(testResult, null, 2)}
+                  </pre>
+                </details>
               </div>
             )}
           </div>
