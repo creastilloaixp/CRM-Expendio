@@ -95,6 +95,9 @@ const App: React.FC = () => {
       console.log('🌍 App: Opening scanner with code:', code);
       setScannerCode(code);
       setCurrentView('scanner');
+    } else if (path.startsWith('/coupon-debug')) {
+      console.log('🌍 App: Opening coupon debug');
+      setCurrentView('coupon-debug');
     } else if (isAuthenticated) {
       switch (path) {
         case '/dashboard':
@@ -123,9 +126,6 @@ const App: React.FC = () => {
           break;
         case '/ai-dashboard':
           setCurrentView('ai-dashboard');
-          break;
-        case '/coupon-debug':
-          setCurrentView('coupon-debug');
           break;
         default:
           setCurrentView('dashboard');
