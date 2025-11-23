@@ -14,6 +14,7 @@ const Reservations = lazy(() => import('./components/Reservations'));
 const Menu = lazy(() => import('./components/MenuWithCart'));
 const Analytics = lazy(() => import('./components/Analytics'));
 const CouponScanner = lazy(() => import('./components/CouponScanner'));
+const CouponDebug = lazy(() => import('./components/CouponDebug'));
 const Chatbot = lazy(() => import('./components/Chatbot'));
 const VoiceAssistant = lazy(() => import('./components/VoiceAssistant'));
 const Clientes = lazy(() => import('./components/Clientes'));
@@ -123,6 +124,9 @@ const App: React.FC = () => {
         case '/ai-dashboard':
           setCurrentView('ai-dashboard');
           break;
+        case '/coupon-debug':
+          setCurrentView('coupon-debug');
+          break;
         default:
           setCurrentView('dashboard');
       }
@@ -201,6 +205,10 @@ const App: React.FC = () => {
 
     if (currentView === 'scanner') {
       return <CouponScanner initialCode={scannerCode} />;
+    }
+
+    if (currentView === 'coupon-debug') {
+      return <CouponDebug />;
     }
 
     if (!isAuthenticated) {

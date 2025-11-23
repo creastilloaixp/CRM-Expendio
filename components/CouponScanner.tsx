@@ -89,6 +89,9 @@ const CouponScanner: React.FC<CouponScannerProps> = ({ initialCode }) => {
 
       // 🔒 ANTI-FRAUDE: Canjear cupón con condición (atomic update)
       // Esto previene race conditions si dos meseros escanean al mismo tiempo
+      console.log('💾 Intentando canjear cupón con ID:', coupon.id);
+      console.log('💾 Estado actual del cupón:', coupon.status);
+
       const { data: updatedCoupon, error: updateError } = await supabase
         .from('cupones')
         .update({
@@ -100,16 +103,25 @@ const CouponScanner: React.FC<CouponScannerProps> = ({ initialCode }) => {
         .select()
         .single();
 
+      console.log('💾 Resultado del update:', { updatedCoupon, updateError });
+
       if (updateError || !updatedCoupon) {
-        console.error('Error al canjear:', updateError);
+        console.error('❌ Error al canjear:', updateError);
+        console.error('❌ Detalles del error:', {
+          code: updateError?.code,
+          message: updateError?.message,
+          details: updateError?.details,
+          hint: updateError?.hint
+        });
         setResult({
           success: false,
-          message: '⚠️ No se pudo canjear. Es posible que ya haya sido usado.',
+          message: `⚠️ No se pudo canjear. ${updateError?.message || 'Es posible que ya haya sido usado.'}`,
         });
         return;
       }
 
       // ✅ ÉXITO
+      console.log('✅ Cupón canjeado exitosamente!');
       setResult({
         success: true,
         message: '✅ ¡Cupón canjeado exitosamente!',
