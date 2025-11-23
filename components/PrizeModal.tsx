@@ -48,6 +48,7 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
   const [coupon, setCoupon] = useState<Coupon | null>(null);
   const [isCreatingCoupon, setIsCreatingCoupon] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+  const [debugLog, setDebugLog] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -82,25 +83,30 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
     }
   }, [coupon]);
 
+  const addDebugLog = (msg: string) => {
+    console.log(msg);
+    setDebugLog(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
+  };
+
   const handleSpinComplete = async (prize: Prize) => {
-    console.log('🎰 handleSpinComplete llamado, premio:', prize);
+    addDebugLog('🎰 Premio ganado: ' + prize.name);
     setWonPrize(prize);
 
     // Crear cupón si no es "suerte para la próxima"
     if (prize.id !== 'suerte' && clienteId) {
       setIsCreatingCoupon(true);
-      console.log('📝 Creando cupón para cliente:', clienteId);
+      addDebugLog('📝 Creando cupón...');
 
       try {
         const fullPrize = PRIZES.find(p => p.id === prize.id) || prize;
-        console.log('🎁 Premio completo:', fullPrize);
+        addDebugLog('🎁 Llamando createCoupon()');
 
         const { data, error } = await createCoupon(fullPrize, clienteId, clienteNombre, clienteTelefono);
 
-        console.log('📊 Resultado createCoupon:', { data, error });
+        addDebugLog('📊 Respuesta: ' + (error ? 'ERROR' : 'OK'));
 
         if (error) {
-          console.error('❌ Error en createCoupon:', error);
+          addDebugLog('❌ Error: ' + error.message);
           alert('Error al crear cupón: ' + error.message);
           setIsCreatingCoupon(false);
           setStep('result');
@@ -108,26 +114,26 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
         }
 
         if (data) {
-          console.log('✅ Cupón creado exitosamente:', data.code);
+          addDebugLog('✅ Cupón: ' + data.code);
           setCoupon(data);
           onPrizeAwarded?.(prize, data);
         } else {
-          console.error('❌ No se recibió data del cupón');
+          addDebugLog('❌ Sin data');
           alert('Error: No se pudo crear el cupón');
         }
       } catch (err: any) {
-        console.error('❌ Excepción creando cupón:', err);
-        alert('Error inesperado: ' + (err.message || 'Desconocido'));
+        addDebugLog('❌ Excepción: ' + err.message);
+        alert('Error: ' + (err.message || 'Desconocido'));
       }
 
       setIsCreatingCoupon(false);
-      console.log('✓ setIsCreatingCoupon(false)');
+      addDebugLog('✓ Cupón process done');
     }
 
     // Mostrar resultado después de un momento
-    console.log('⏰ Cambiando a step=result en 500ms');
+    addDebugLog('⏰ Mostrando resultado...');
     setTimeout(() => {
-      console.log('✓ setStep("result")');
+      addDebugLog('✓ Step = result');
       setStep('result');
     }, 500);
   };
@@ -191,6 +197,13 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
                     <div className="flex flex-col items-center gap-3 p-6">
                       <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-expendio-primary"></div>
                       <p className="text-gray-600">Preparando tu cupón...</p>
+
+                      {/* Debug log visible */}
+                      <div className="mt-4 w-full bg-black text-green-400 p-3 rounded text-xs font-mono max-h-32 overflow-y-auto">
+                        {debugLog.map((log, i) => (
+                          <div key={i}>{log}</div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
