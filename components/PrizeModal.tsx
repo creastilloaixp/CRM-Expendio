@@ -5,6 +5,7 @@ import type { Prize } from './SpinWheel';
 import { createCoupon, getWhatsAppUrl, BUSINESS_CONFIG, PRIZES } from '../services/prizeService';
 import type { Coupon } from '../services/prizeService';
 import { sendPrizeWelcomeMessage } from '../services/whatsappService';
+import QRCode from 'qrcode';
 
 // Error boundary simple
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
@@ -46,14 +47,33 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
   const [coupon, setCoupon] = useState<Coupon | null>(null);
   const [isCreatingCoupon, setIsCreatingCoupon] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
 
   useEffect(() => {
     if (isOpen) {
       setStep('spin');
       setWonPrize(null);
       setCoupon(null);
+      setQrCodeUrl('');
     }
   }, [isOpen]);
+
+  // Generar QR code cuando se crea el cupón
+  useEffect(() => {
+    if (coupon) {
+      const qrData = JSON.stringify({
+        type: 'coupon_redeem',
+        coupon_code: coupon.code,
+        coupon_id: coupon.id,
+        prize_name: coupon.prize_name,
+        cliente_nombre: coupon.cliente_nombre,
+      });
+
+      QRCode.toDataURL(qrData, { width: 300, margin: 2 })
+        .then((url) => setQrCodeUrl(url))
+        .catch((err) => console.error('Error generando QR:', err));
+    }
+  }, [coupon]);
 
   const handleSpinComplete = async (prize: Prize) => {
     setWonPrize(prize);
@@ -151,32 +171,49 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
 
                   {coupon && (
                     <>
-                      <div className="bg-gradient-to-r from-expendio-primary to-expendio-red p-4 rounded-lg text-white text-center">
-                        <p className="text-sm opacity-80">Tu código de cupón:</p>
-                        <p className="text-3xl font-mono font-bold tracking-wider">
-                          {coupon.code}
-                        </p>
-                        <p className="text-sm opacity-90 mt-1">
-                          Válido hasta: {new Date(coupon.expires_at).toLocaleDateString('es-MX')}
+                      {/* QR Code - Principal */}
+                      {qrCodeUrl && (
+                        <div className="bg-white p-6 rounded-xl border-4 border-expendio-primary shadow-lg">
+                          <p className="text-center text-lg font-bold text-expendio-dark mb-3">
+                            🎁 Tu Premio: {wonPrize.name}
+                          </p>
+                          <img
+                            src={qrCodeUrl}
+                            alt="QR del cupón"
+                            className="mx-auto w-64 h-64"
+                          />
+                          <div className="text-center mt-3">
+                            <p className="text-sm text-gray-600">Código:</p>
+                            <p className="text-2xl font-mono font-bold text-expendio-primary">
+                              {coupon.code}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-2">
+                              Válido hasta: {new Date(coupon.expires_at).toLocaleDateString('es-MX')}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <p className="text-sm text-center text-gray-700">
+                          <strong>👆 Muestra este QR al mesero</strong>
+                          <br />
+                          <span className="text-gray-600">para reclamar tu premio</span>
                         </p>
                       </div>
 
-                      <p className="text-gray-600 text-sm">
-                        📲 Te enviamos un mensaje por WhatsApp con tu cupón
-                      </p>
-
-                      {/* Botones directamente aquí */}
-                      <div className="space-y-3">
-                        {/* WhatsApp */}
+                      {/* Botones secundarios */}
+                      <div className="space-y-2">
+                        {/* WhatsApp - Recordatorio */}
                         <a
                           href={getWhatsAppUrl(coupon, wonPrize as any)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="block"
                         >
-                          <Button fullWidth className="bg-green-500 hover:bg-green-600">
-                            <span className="flex items-center justify-center gap-2">
-                              💬 Abrir WhatsApp
+                          <Button fullWidth variant="outline" className="border-green-500 text-green-600 hover:bg-green-50">
+                            <span className="flex items-center justify-center gap-2 text-sm">
+                              💬 Enviar a mi WhatsApp
                             </span>
                           </Button>
                         </a>
@@ -189,13 +226,13 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
                           className="block"
                         >
                           <Button fullWidth variant="outline" className="border-pink-500 text-pink-500 hover:bg-pink-50">
-                            📸 Síguenos en Instagram
+                            <span className="text-sm">📸 Síguenos en Instagram</span>
                           </Button>
                         </a>
 
                         {/* Cerrar */}
-                        <Button onClick={onClose} fullWidth variant="outline">
-                          Continuar
+                        <Button onClick={onClose} fullWidth className="bg-expendio-primary hover:bg-expendio-dark">
+                          Continuar al Menú
                         </Button>
                       </div>
                     </>

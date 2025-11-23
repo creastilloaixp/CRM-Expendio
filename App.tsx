@@ -13,6 +13,7 @@ const CheckIn = lazy(() => import('./components/CheckIn'));
 const Reservations = lazy(() => import('./components/Reservations'));
 const Menu = lazy(() => import('./components/MenuWithCart'));
 const Analytics = lazy(() => import('./components/Analytics'));
+const CouponScanner = lazy(() => import('./components/CouponScanner'));
 const Chatbot = lazy(() => import('./components/Chatbot'));
 const VoiceAssistant = lazy(() => import('./components/VoiceAssistant'));
 const Clientes = lazy(() => import('./components/Clientes'));
@@ -182,6 +183,10 @@ const App: React.FC = () => {
         const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
         const mesa = params.get('mesa');
         return <Menu mesaName={mesa} />;
+    }
+
+    if (currentView === 'scanner') {
+      return <CouponScanner />;
     }
 
     if (!isAuthenticated) {
