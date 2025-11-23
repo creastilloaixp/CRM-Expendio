@@ -87,22 +87,7 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
         if (data) {
           setCoupon(data);
           onPrizeAwarded?.(prize, data);
-
-          // Enviar mensaje de WhatsApp automáticamente
-          if (clienteTelefono && clienteNombre) {
-            try {
-              await sendPrizeWelcomeMessage(
-                clienteTelefono,
-                clienteNombre,
-                prize.name,
-                data.code
-              );
-              console.log('✅ Mensaje de WhatsApp enviado');
-            } catch (err) {
-              console.error('Error enviando WhatsApp:', err);
-              // No mostrar error al usuario, solo log
-            }
-          }
+          console.log('✅ Cupón creado:', data.code);
         }
       } catch (err) {
         console.error('Error creando cupón:', err);
@@ -169,30 +154,44 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
                     ¡Ganaste {wonPrize.name}!
                   </h3>
 
-                  {coupon && (
+                  {isCreatingCoupon && (
+                    <div className="flex flex-col items-center gap-3 p-6">
+                      <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-expendio-primary"></div>
+                      <p className="text-gray-600">Preparando tu cupón...</p>
+                    </div>
+                  )}
+
+                  {!isCreatingCoupon && coupon && (
                     <>
                       {/* QR Code - Principal */}
-                      {qrCodeUrl && (
-                        <div className="bg-white p-6 rounded-xl border-4 border-expendio-primary shadow-lg">
-                          <p className="text-center text-lg font-bold text-expendio-dark mb-3">
-                            🎁 Tu Premio: {wonPrize.name}
-                          </p>
+                      <div className="bg-white p-6 rounded-xl border-4 border-expendio-primary shadow-lg">
+                        <p className="text-center text-lg font-bold text-expendio-dark mb-3">
+                          🎁 Tu Premio: {wonPrize.name}
+                        </p>
+                        {qrCodeUrl ? (
                           <img
                             src={qrCodeUrl}
                             alt="QR del cupón"
                             className="mx-auto w-64 h-64"
                           />
-                          <div className="text-center mt-3">
-                            <p className="text-sm text-gray-600">Código:</p>
-                            <p className="text-2xl font-mono font-bold text-expendio-primary">
-                              {coupon.code}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-2">
-                              Válido hasta: {new Date(coupon.expires_at).toLocaleDateString('es-MX')}
-                            </p>
+                        ) : (
+                          <div className="flex items-center justify-center w-64 h-64 mx-auto bg-gray-100 rounded-lg">
+                            <div className="text-center">
+                              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-expendio-primary mx-auto mb-2"></div>
+                              <p className="text-sm text-gray-600">Generando QR...</p>
+                            </div>
                           </div>
+                        )}
+                        <div className="text-center mt-3">
+                          <p className="text-sm text-gray-600">Código:</p>
+                          <p className="text-2xl font-mono font-bold text-expendio-primary">
+                            {coupon.code}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Válido hasta: {new Date(coupon.expires_at).toLocaleDateString('es-MX')}
+                          </p>
                         </div>
-                      )}
+                      </div>
 
                       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                         <p className="text-sm text-center text-gray-700">
