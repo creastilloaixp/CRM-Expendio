@@ -96,10 +96,12 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
       console.log('🔲 Generando QR para cupón:', coupon.code);
       // URL que el mesero escaneará para validar el cupón
       const qrData = `${window.location.origin}${window.location.pathname}#/scanner?code=${coupon.code}`;
+      console.log('🔗 URL del QR:', qrData);
 
       QRCode.toDataURL(qrData, { width: 300, margin: 2 })
         .then((url) => {
           console.log('✅ QR generado exitosamente');
+          console.log('📋 Datos del QR:', qrData);
           setQrCodeUrl(url);
         })
         .catch((err) => {
@@ -413,6 +415,21 @@ const PrizeModal: React.FC<PrizeModalProps> = ({
                           <p className="text-xs text-gray-500 mt-2">
                             Válido hasta: {new Date(coupon.expires_at).toLocaleDateString('es-MX')}
                           </p>
+
+                          {/* Panel de debug */}
+                          <details className="mt-3 text-left">
+                            <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">
+                              🔧 Info técnica (para debugging)
+                            </summary>
+                            <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono">
+                              <p className="text-gray-600">URL del QR:</p>
+                              <p className="text-gray-800 break-all">
+                                {`${window.location.origin}${window.location.pathname}#/scanner?code=${coupon.code}`}
+                              </p>
+                              <p className="text-gray-600 mt-2">ID: {coupon.id}</p>
+                              <p className="text-gray-600">Estado: {coupon.status}</p>
+                            </div>
+                          </details>
                         </div>
                       </div>
 

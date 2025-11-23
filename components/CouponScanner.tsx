@@ -36,24 +36,31 @@ const CouponScanner: React.FC<CouponScannerProps> = ({ initialCode }) => {
   }, [initialCode]);
 
   const validateAndRedeemCoupon = async (code: string) => {
+    console.log('🔍 validateAndRedeemCoupon llamado con código:', code);
     setLoading(true);
     setResult(null);
 
     try {
       // Buscar cupón en la base de datos
+      console.log('📊 Buscando en BD código:', code.toUpperCase());
       const { data: coupon, error } = await supabase
         .from('cupones')
         .select('*')
         .eq('code', code.toUpperCase())
         .single();
 
+      console.log('📊 Respuesta de BD:', { coupon, error });
+
       if (error || !coupon) {
+        console.error('❌ Cupón no encontrado o error:', error);
         setResult({
           success: false,
-          message: '❌ Cupón no encontrado. Verifica el código.',
+          message: `❌ Cupón no encontrado. Código buscado: ${code.toUpperCase()}`,
         });
         return;
       }
+
+      console.log('✅ Cupón encontrado:', coupon);
 
       // 🔒 ANTI-FRAUDE: Verificar si ya fue canjeado
       if (coupon.status === 'redeemed') {
@@ -159,10 +166,27 @@ const CouponScanner: React.FC<CouponScannerProps> = ({ initialCode }) => {
 
             // Extraer código del QR (puede venir como URL)
             let code = qrText;
+
+            // Si contiene "code=", extraer el parámetro
             if (qrText.includes('code=')) {
-              const urlParams = new URLSearchParams(qrText.split('?')[1]);
-              code = urlParams.get('code') || qrText;
+              try {
+                // Manejar URLs con # (hash routing)
+                const urlPart = qrText.includes('?') ? qrText.split('?')[1] : qrText;
+                const params = new URLSearchParams(urlPart);
+                const extractedCode = params.get('code');
+
+                if (extractedCode) {
+                  code = extractedCode;
+                  console.log('✅ Código extraído de URL:', code);
+                } else {
+                  console.warn('⚠️ No se pudo extraer código de:', qrText);
+                }
+              } catch (err) {
+                console.error('❌ Error extrayendo código:', err);
+              }
             }
+
+            console.log('🔍 Código final a validar:', code);
 
             // Detener escaneo
             stopScanning();
