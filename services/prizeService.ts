@@ -39,13 +39,13 @@ export interface Coupon {
   status: 'active' | 'redeemed' | 'expired';
 }
 
-// Premios con probabilidades por nivel VIP
+// Premios con probabilidades por nivel VIP - Colores cerveceros
 export const VIP_PRIZES: VIPPrize[] = [
   {
     id: 'bebida',
     name: 'Bebida Gratis',
     icon: '🍺',
-    color: '#FF6B6B',
+    color: '#FF8C42', // Naranja cerveza
     probability: 10,
     value: 50,
     probabilityByLevel: { bronce: 8, plata: 12, oro: 15, platino: 20 }
@@ -54,7 +54,7 @@ export const VIP_PRIZES: VIPPrize[] = [
     id: 'postre',
     name: 'Postre Cortesía',
     icon: '🍰',
-    color: '#4ECDC4',
+    color: '#FFD93D', // Amarillo dorado
     probability: 10,
     value: 45,
     probabilityByLevel: { bronce: 8, plata: 12, oro: 14, platino: 18 }
@@ -63,7 +63,7 @@ export const VIP_PRIZES: VIPPrize[] = [
     id: 'descuento10',
     name: '10% Descuento',
     icon: '💰',
-    color: '#45B7D1',
+    color: '#6BCF7F', // Verde fresco
     probability: 15,
     value: 30,
     probabilityByLevel: { bronce: 12, plata: 16, oro: 18, platino: 20 }
@@ -72,7 +72,7 @@ export const VIP_PRIZES: VIPPrize[] = [
     id: '2x1',
     name: '2x1 Próxima Visita',
     icon: '🎁',
-    color: '#96CEB4',
+    color: '#FF6B9D', // Rosa vibrante
     probability: 10,
     value: 100,
     probabilityByLevel: { bronce: 6, plata: 10, oro: 14, platino: 18 }
@@ -81,7 +81,7 @@ export const VIP_PRIZES: VIPPrize[] = [
     id: 'puntos',
     name: '20 Puntos Extra',
     icon: '⭐',
-    color: '#FFEAA7',
+    color: '#FFC837', // Dorado intenso
     probability: 20,
     value: 10,
     probabilityByLevel: { bronce: 25, plata: 22, oro: 18, platino: 12 }
@@ -89,17 +89,17 @@ export const VIP_PRIZES: VIPPrize[] = [
   {
     id: 'shot',
     name: 'Shot Sorpresa',
-    icon: '🎉',
-    color: '#DDA0DD',
+    icon: '🥃', // Cambio de icono a shot
+    color: '#D4A574', // Color whisky/tequila
     probability: 10,
     value: 35,
     probabilityByLevel: { bronce: 8, plata: 10, oro: 13, platino: 16 }
   },
   {
     id: 'suerte',
-    name: '¡Próxima satisfacción!',
+    name: '¡Próxima vez!', // Texto más corto
     icon: '🍀',
-    color: '#95A5A6',
+    color: '#95A5A6', // Gris neutro
     probability: 25,
     value: 0,
     probabilityByLevel: { bronce: 33, plata: 18, oro: 8, platino: 1 }
